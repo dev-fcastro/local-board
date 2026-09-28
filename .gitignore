@@ -27,9 +27,6 @@ Thumbs.db
 # local tooling
 .claude/
 
-# markdown documents are kept out of the repository
+# markdown is kept out of the repository, except the product plan
 *.md
-
-# third-party reference files (another company's website) — never commit
-assets/*.css
-assets/*.js
+!assets/plan.md
