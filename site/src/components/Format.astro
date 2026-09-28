@@ -1,0 +1,306 @@
+---
+const principles = [
+  {
+    tag: "Principle",
+    title: "Local first",
+    text: "Every action lands in local state first. Sync, if you ever turn it on, happens after.",
+  },
+  {
+    tag: "Principle",
+    title: "Offline first",
+    text: "Open, edit, save and export boards with no internet connection at all.",
+  },
+  {
+    tag: "Principle",
+    title: "User-owned data",
+    text: "No proprietary lock-in. Export everything without depending on our infrastructure.",
+  },
+  {
+    tag: "MVP",
+    title: "Crash recovery",
+    text: "Autosave with debounce, an immediate flush on critical events, and a recovery copy if a save is cut short.",
+  },
+  {
+    tag: "Roadmap",
+    title: "Bring your own storage",
+    text: "A local folder today. Google Drive, OneDrive, Dropbox, WebDAV, S3-compatible or your own server later.",
+  },
+  {
+    tag: "Target",
+    title: "Made for big boards",
+    text: "Designed for 60 FPS on large boards, with rendering kept apart from the document model.",
+  },
+];
+
+const tree = `roadmap.whiteboard
+├─ document.json
+├─ metadata.json
+├─ assets/
+│  ├─ a1.png
+│  └─ a2.webp
+└─ history/`;
+---
+
+<section class="format" id="format" aria-labelledby="format-title">
+  <div class="format-panel">
+    <div class="panel-inner">
+      <div class="panel-visual" data-mask>
+        <pre class="tree" aria-label="Contents of a .whiteboard file"><code>{tree}</code></pre>
+        <p class="migrations -p" aria-label="Schema versions migrate forward">
+          <span>schema v1</span><i aria-hidden="true"></i><span>v2</span><i aria-hidden="true"></i><span>v3</span>
+        </p>
+      </div>
+
+      <div class="panel-content">
+        <p class="panel-meta -p" data-reveal>.whiteboard · Versioned · Migratable</p>
+        <h2 class="panel-title -t5" id="format-title" data-reveal>
+          One file per board. Readable, portable, yours.
+        </h2>
+        <p class="panel-text -p" data-reveal>
+          A board is a folder you can open: the document as JSON, images stored beside it, and
+          its history. Old files are migrated forward, never broken.
+        </p>
+        <a class="panel-button -p" href="#principles" data-reveal>See the principles</a>
+      </div>
+    </div>
+  </div>
+
+  <ul class="principles" id="principles" aria-label="Principles">
+    {
+      principles.map((item) => (
+        <li class="principle">
+          <span class="rule rule-bottom" data-line="x" aria-hidden="true" />
+          <span class="rule rule-side" data-line="y" aria-hidden="true" />
+          <p class="principle-tag -p">{item.tag}</p>
+          <div>
+            <h3 class="principle-title -p2" data-reveal>{item.title}</h3>
+            <p class="principle-text -p" data-reveal>{item.text}</p>
+          </div>
+        </li>
+      ))
+    }
+  </ul>
+</section>
+
+<style>
+  .format {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    background: var(--ink-primary);
+  }
+
+  @media screen and (min-width: 1025px) {
+    .format {
+      grid-template-columns: 1fr 1fr;
+    }
+  }
+
+  /* ---------- sticky panel ---------- */
+
+  .format-panel {
+    color: var(--canvas);
+  }
+
+  .panel-inner {
+    display: flex;
+    flex-direction: column;
+  }
+
+  @media screen and (min-width: 1025px) {
+    .panel-inner {
+      position: sticky;
+      top: 0;
+      min-height: 100vh;
+      min-height: 100svh;
+    }
+  }
+
+  .panel-visual {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 3.2rem;
+    min-height: 32rem;
+    padding: 4rem 1.6rem;
+    background:
+      radial-gradient(circle at 1px 1px, var(--line-on-dark) 1px, transparent 0) 0 0 / 20px 20px,
+      #202124;
+    border-bottom: 1px solid var(--line-on-dark);
+  }
+
+  @media screen and (min-width: 750px) {
+    .panel-visual {
+      padding: 4rem;
+    }
+  }
+
+  @media screen and (min-width: 1025px) {
+    .panel-visual {
+      flex: 1;
+    }
+  }
+
+  .tree {
+    flex-shrink: 0;
+    font-family: var(--font-mono);
+    font-size: clamp(14px, 2.2rem, 28px);
+    line-height: 1.5;
+    color: var(--canvas);
+    white-space: pre;
+  }
+
+  .migrations {
+    display: flex;
+    align-items: center;
+    gap: 1.2rem;
+    color: var(--accent-on-dark);
+  }
+
+  .migrations i {
+    position: relative;
+    width: 4.8rem;
+    height: 1px;
+    background: currentColor;
+  }
+
+  .migrations i::after {
+    content: "";
+    position: absolute;
+    right: 0;
+    top: -3px;
+    border-left: 6px solid currentColor;
+    border-top: 3.5px solid transparent;
+    border-bottom: 3.5px solid transparent;
+  }
+
+  .panel-content {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2.4rem;
+    padding: 3.2rem 1.6rem 4.8rem;
+  }
+
+  @media screen and (min-width: 750px) {
+    .panel-content {
+      padding: 4rem;
+    }
+  }
+
+  .panel-meta {
+    color: var(--ink-tertiary);
+  }
+
+  .panel-title {
+    max-width: 18ch;
+  }
+
+  .panel-text {
+    max-width: 52ch;
+    color: var(--ink-tertiary);
+  }
+
+  .panel-button {
+    display: inline-flex;
+    align-items: center;
+    height: 48px;
+    padding: 0 24px;
+    border-radius: 999px;
+    background: var(--canvas);
+    color: var(--ink-primary);
+    border: 1px solid var(--canvas);
+    transition: background 0.25s, color 0.25s;
+  }
+
+  .panel-button:hover {
+    background: transparent;
+    color: var(--canvas);
+  }
+
+  /* ---------- principles grid ---------- */
+
+  .principles {
+    display: grid;
+    grid-template-columns: 1fr;
+    background: var(--surface);
+  }
+
+  @media screen and (min-width: 750px) {
+    .principles {
+      grid-template-columns: 1fr 1fr;
+    }
+  }
+
+  .principle {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    gap: 4rem;
+    min-height: 28rem;
+    padding: 2.4rem 1.6rem 3.2rem;
+    transition: background 0.4s var(--ease-standard), color 0.4s var(--ease-standard);
+  }
+
+  @media screen and (min-width: 750px) {
+    .principle {
+      min-height: 40rem;
+      padding: 4rem;
+    }
+  }
+
+  .principle:hover {
+    background: var(--ink-primary);
+    color: var(--canvas);
+  }
+
+  .principle-tag {
+    align-self: flex-start;
+    padding: 4px 10px;
+    border: 1px solid currentColor;
+    border-radius: 999px;
+  }
+
+  .principle-title {
+    margin-bottom: 1.6rem;
+  }
+
+  .principle-text {
+    max-width: 40ch;
+    color: var(--ink-secondary);
+    transition: color 0.4s;
+  }
+
+  .principle:hover .principle-text {
+    color: var(--ink-tertiary);
+  }
+
+  .rule {
+    position: absolute;
+    background: var(--line);
+    pointer-events: none;
+  }
+
+  .rule-bottom {
+    left: 0;
+    bottom: 0;
+    width: 100%;
+    height: 1px;
+    transform-origin: left center;
+  }
+
+  .rule-side {
+    top: 0;
+    right: 0;
+    width: 1px;
+    height: 100%;
+    transform-origin: center top;
+  }
+
+  @media screen and (max-width: 749px) {
+    .rule-side {
+      display: none;
+    }
+  }
+</style>

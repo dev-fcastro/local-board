@@ -1,0 +1,101 @@
+---
+import { downloadUrl, type Platform } from "../data/downloads";
+
+interface Props {
+  platform: Platform;
+  label?: string;
+  tone?: "ink" | "light" | "accent";
+  class?: string;
+}
+
+const { platform, label = `Download for ${platform.name}`, tone = "ink", class: className } = Astro.props;
+---
+
+{
+  platform.available ? (
+    <a class:list={["dl", `dl-${tone}`, className]} href={downloadUrl(platform)} data-platform={platform.id}>
+      <span class="dl-label">{label}</span>
+      <svg class="dl-icon" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+        <path d="M8 1v10M3.5 7 8 11.5 12.5 7M2 15h12" stroke="currentColor" stroke-width="1.6" />
+      </svg>
+    </a>
+  ) : (
+    <span class:list={["dl", `dl-${tone}`, "is-soon", className]} aria-disabled="true" data-platform={platform.id}>
+      <span class="dl-label">{label}</span>
+      <span class="dl-eta">{platform.eta}</span>
+    </span>
+  )
+}
+
+<style>
+  .dl {
+    display: inline-flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    min-height: 52px;
+    padding: 0 20px 0 24px;
+    border-radius: 999px;
+    font-family: var(--font-mono);
+    font-size: clamp(11px, 1.2rem, 14px);
+    letter-spacing: 0.01em;
+    text-transform: uppercase;
+    white-space: nowrap;
+    transition: background 0.25s, color 0.25s, border-color 0.25s;
+  }
+
+  .dl-ink {
+    background: var(--ink-primary);
+    color: var(--canvas);
+    border: 1px solid var(--ink-primary);
+  }
+
+  .dl-light {
+    background: var(--canvas);
+    color: var(--ink-primary);
+    border: 1px solid var(--canvas);
+  }
+
+  .dl-accent {
+    background: var(--accent);
+    color: var(--accent-ink);
+    border: 1px solid var(--accent);
+  }
+
+  a.dl-ink:hover {
+    background: var(--accent);
+    border-color: var(--accent);
+  }
+
+  a.dl-light:hover,
+  a.dl-accent:hover {
+    background: transparent;
+    color: inherit;
+  }
+
+  .dl-icon {
+    width: 16px;
+    height: 16px;
+    transition: transform 0.4s var(--ease-out);
+  }
+
+  a.dl:hover .dl-icon {
+    transform: translateY(2px);
+  }
+
+  .is-soon {
+    cursor: default;
+    opacity: 0.9;
+  }
+
+  .is-soon .dl-label {
+    opacity: 0.55;
+  }
+
+  .dl-eta {
+    padding: 3px 8px;
+    border-radius: 999px;
+    border: 1px solid currentColor;
+    font-size: 0.85em;
+  }
+</style>

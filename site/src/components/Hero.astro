@@ -1,0 +1,448 @@
+---
+import AppPreview from "./AppPreview.astro";
+
+const highlights = [
+  {
+    title: "Infinite canvas",
+    text: "Pan, zoom and draw without edges. Pen, shapes, arrows, text, sticky notes and images.",
+  },
+  {
+    title: "Undo that remembers",
+    text: "Every change is a command, so your history survives a restart — and a crash.",
+  },
+  {
+    title: "Export without internet",
+    text: "PNG, SVG, PDF, JSON or the whole .whiteboard file. No account, no upload.",
+  },
+];
+
+const status = [
+  { label: "Canvas", state: "Infinite" },
+  { label: "Autosave", state: "On" },
+  { label: "Undo / redo", state: "Command log" },
+  { label: "Crash recovery", state: "Armed" },
+  { label: "Export", state: "PNG · SVG · PDF" },
+  { label: "Cloud sync", state: "Off", off: true },
+];
+---
+
+<section class="hero">
+  <div class="hero-block">
+    <div class="block-bg" data-mask></div>
+    <p class="hero-description -p1" data-reveal>
+      Local Board is a whiteboard that lives on your disk. Draw, save and export with no
+      connection — the cloud is optional, never required.
+    </p>
+    <h1 class="hero-title -t1" data-rise>
+      <span><span>Offline</span></span>
+      <span><span>by design.</span></span>
+    </h1>
+  </div>
+
+  <div class="hero-preview" data-mask data-mask-delay="0.25">
+    <AppPreview />
+  </div>
+
+  <ul class="hero-highlights">
+    {
+      highlights.map((item) => (
+        <li class="highlight">
+          <span class="rule rule-top" data-line="x" aria-hidden="true" />
+          <span class="rule rule-side" data-line="y" aria-hidden="true" />
+          <h2 class="highlight-title -p2" data-reveal>{item.title}</h2>
+          <p class="highlight-text -p" data-reveal>{item.text}</p>
+        </li>
+      ))
+    }
+  </ul>
+
+  <aside class="hero-aside" aria-label="Board status">
+    <div class="aside-inner">
+      <div class="aside-block">
+        <p class="aside-label -p2" data-reveal>The board belongs to you, not to the service.</p>
+      </div>
+
+      <div class="aside-stats" data-mask data-mask-delay="0.15">
+        <div class="stats-head">
+          <p class="-p1">Board status</p>
+          <p class="stats-file -p">roadmap.whiteboard</p>
+        </div>
+        <ul class="stats-list">
+          {
+            status.map((row, i) => (
+              <li class="stats-item -p">
+                <span class="stats-label">
+                  {String(i + 1).padStart(2, "0")}. {row.label}
+                </span>
+                <span class="stats-state">{row.state}</span>
+                <i class:list={["dot", { "dot-off": row.off }]} aria-hidden="true" />
+              </li>
+            ))
+          }
+        </ul>
+        <pre class="stats-code -p" aria-label="document.json excerpt"><code>{`{
+  "schemaVersion": 1,
+  "boardId": "roadmap",
+  "objects": [ … ]
+}`}</code></pre>
+        <p class="stats-saved -p"><i aria-hidden="true"></i>Saved to disk · 0 requests sent</p>
+      </div>
+
+      <a class="aside-cta" href="#early-access" data-mask data-mask-delay="0.3">
+        <svg class="cta-icon" viewBox="0 0 100 100" fill="none" aria-hidden="true">
+          <path d="M50 8v76M18 54l32 32 32-32" stroke="currentColor" stroke-width="12" />
+        </svg>
+        <span class="cta-label -p2">Join the<br />early access.</span>
+      </a>
+    </div>
+  </aside>
+</section>
+
+<style>
+  .hero {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas:
+      "block"
+      "aside"
+      "preview"
+      "highlights";
+  }
+
+  @media screen and (min-width: 1025px) {
+    .hero {
+      grid-template-columns: minmax(0, 1fr) 300px;
+      grid-template-areas:
+        "block aside"
+        "preview aside"
+        "highlights aside";
+    }
+  }
+
+  @media screen and (min-width: 1280px) {
+    .hero {
+      grid-template-columns: minmax(0, 1fr) 36rem;
+    }
+  }
+
+  /* ---------- colour block ---------- */
+
+  .hero-block {
+    grid-area: block;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    padding: 12rem 1.6rem 3.2rem;
+    color: var(--accent-ink);
+    overflow: hidden;
+  }
+
+  @media screen and (min-width: 750px) {
+    .hero-block {
+      padding: 22rem 4rem 4rem;
+    }
+  }
+
+  .block-bg {
+    position: absolute;
+    inset: 0;
+    background: var(--accent);
+  }
+
+  .hero-description,
+  .hero-title {
+    position: relative;
+  }
+
+  .hero-description {
+    max-width: 30ch;
+    margin-left: auto;
+    margin-bottom: 4rem;
+  }
+
+  @media screen and (min-width: 750px) {
+    .hero-description {
+      margin-left: 0;
+      max-width: 34ch;
+    }
+  }
+
+  @media screen and (min-width: 1025px) {
+    .hero-description {
+      position: absolute;
+      top: 25rem;
+      left: 64rem;
+      max-width: 32rem;
+      margin: 0;
+    }
+  }
+
+  /* ---------- product preview ---------- */
+
+  .hero-preview {
+    grid-area: preview;
+    height: 44rem;
+    border-bottom: 1px solid var(--line);
+  }
+
+  @media screen and (min-width: 750px) {
+    .hero-preview {
+      height: 64rem;
+    }
+  }
+
+  /* ---------- highlights ---------- */
+
+  .hero-highlights {
+    grid-area: highlights;
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  @media screen and (min-width: 750px) {
+    .hero-highlights {
+      grid-template-columns: repeat(3, 1fr);
+    }
+  }
+
+  .highlight {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 2.4rem;
+    padding: 2.4rem 1.6rem 3.2rem;
+    transition: background 0.35s var(--ease-standard), color 0.35s var(--ease-standard);
+  }
+
+  @media screen and (min-width: 750px) {
+    .highlight {
+      min-height: 26rem;
+      padding: 4rem;
+    }
+  }
+
+  .highlight:hover {
+    background: var(--ink-primary);
+    color: var(--canvas);
+  }
+
+  .highlight-text {
+    max-width: 36ch;
+    color: var(--ink-secondary);
+    transition: color 0.35s var(--ease-standard);
+  }
+
+  .highlight:hover .highlight-text {
+    color: var(--ink-tertiary);
+  }
+
+  .rule {
+    position: absolute;
+    background: var(--line);
+    pointer-events: none;
+  }
+
+  .rule-top {
+    top: -1px;
+    left: 0;
+    width: 100%;
+    height: 1px;
+    transform-origin: left center;
+  }
+
+  .rule-side {
+    top: 0;
+    right: 0;
+    width: 1px;
+    height: 100%;
+    transform-origin: center top;
+  }
+
+  .highlight:last-child .rule-side {
+    display: none;
+  }
+
+  @media screen and (max-width: 749px) {
+    .rule-side {
+      display: none;
+    }
+  }
+
+  /* ---------- sticky aside ---------- */
+
+  .hero-aside {
+    grid-area: aside;
+    background: var(--surface);
+  }
+
+  .aside-inner {
+    display: flex;
+    flex-direction: column;
+  }
+
+  @media screen and (min-width: 1025px) {
+    .aside-inner {
+      position: sticky;
+      top: 0;
+      min-height: 100vh;
+      min-height: 100svh;
+    }
+  }
+
+  .aside-block {
+    display: flex;
+    align-items: flex-end;
+    padding: 3.2rem 1.6rem;
+  }
+
+  @media screen and (min-width: 750px) {
+    .aside-block {
+      padding: 4rem;
+    }
+  }
+
+  @media screen and (min-width: 1025px) {
+    .aside-block {
+      flex: 1;
+      min-height: 12rem;
+    }
+  }
+
+  .aside-label {
+    max-width: 16ch;
+  }
+
+  .aside-stats {
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+    padding: 3.2rem 1.6rem;
+    background: var(--ink-primary);
+    color: var(--canvas);
+  }
+
+  @media screen and (min-width: 750px) {
+    .aside-stats {
+      padding: 3.2rem 4rem;
+    }
+  }
+
+  .stats-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 1.2rem;
+  }
+
+  .stats-file {
+    color: var(--ink-tertiary);
+  }
+
+  .stats-list {
+    display: grid;
+    gap: 2px;
+  }
+
+  .stats-item {
+    display: grid;
+    grid-template-columns: 1fr auto 10px;
+    align-items: center;
+    gap: 1.2rem;
+  }
+
+  .stats-state {
+    color: var(--ink-tertiary);
+  }
+
+  .dot {
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: var(--canvas);
+    justify-self: end;
+  }
+
+  .dot-off {
+    background: none;
+    box-shadow: inset 0 0 0 1px var(--ink-tertiary);
+  }
+
+  .stats-code {
+    flex-shrink: 0;
+    padding-left: 1.2rem;
+    border-left: 1px solid var(--line-on-dark);
+    color: var(--ink-tertiary);
+    text-transform: none;
+    white-space: pre;
+  }
+
+  .stats-saved {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--canvas);
+  }
+
+  .stats-saved i {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--accent-on-dark);
+    animation: blink 2.4s ease-in-out infinite;
+  }
+
+  .aside-cta {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    height: 20rem;
+    padding: 1.6rem;
+    background: var(--accent);
+    color: var(--accent-ink);
+    transition: background 0.3s var(--ease-standard);
+  }
+
+  @media screen and (min-width: 750px) {
+    .aside-cta {
+      height: 24rem;
+      padding: 3.2rem 4rem;
+    }
+  }
+
+  .aside-cta:hover {
+    background: var(--accent-hover);
+  }
+
+  .cta-icon {
+    width: 6.4rem;
+    align-self: flex-end;
+    transition: transform 0.5s var(--ease-out);
+  }
+
+  @media screen and (min-width: 750px) {
+    .cta-icon {
+      width: 7.2rem;
+    }
+  }
+
+  .aside-cta:hover .cta-icon {
+    transform: translateY(0.8rem);
+  }
+
+  @keyframes blink {
+    0%,
+    100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.3;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .stats-saved i {
+      animation: none;
+    }
+  }
+</style>

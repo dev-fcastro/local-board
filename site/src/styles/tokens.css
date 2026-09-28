@@ -1,0 +1,47 @@
+/*
+  Local Board — design tokens (light theme)
+  The mark is achromatic (currentColor), so neutrals are derived from contrast
+  rules and --accent is the only chromatic token (60-30-10).
+*/
+
+:root {
+  color-scheme: light;
+
+  /* surfaces */
+  --canvas: #faf9f9;
+  --canvas-elevated: #ffffff;
+  --surface: #e6e5e1;       /* two-tone panels, ~13:1 with --ink-primary */
+  --surface-strong: #d6d5d0;
+
+  /* ink */
+  --ink-primary: #17181a;   /* ~16.5:1 on --canvas (AAA) */
+  --ink-secondary: #55585e; /* ~7.5:1 on --canvas (AAA) */
+  --ink-tertiary: #8a8d93;  /* ~3.9:1 on --canvas (AA large / UI) */
+
+  /* rules: 1px grid lines */
+  --line: rgba(23, 24, 26, 0.22);
+  --line-on-dark: rgba(250, 249, 249, 0.18);
+  --line-on-accent: rgba(255, 255, 255, 0.35);
+
+  /* brand accent */
+  --accent: #4f46e5;        /* ~7.2:1 on --canvas (AAA) */
+  --accent-hover: #4338ca;
+  --accent-ink: #ffffff;
+  --accent-on-dark: #8b85ff; /* ~5.4:1 on --ink-primary (AA) */
+
+  /* legacy aliases */
+  --border: var(--line);
+  --border-strong: var(--surface-strong);
+
+  /* typography */
+  --font-sans: "Space Grotesk Variable", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "Space Mono", ui-monospace, "SFMono-Regular", Consolas, monospace;
+
+  /* fluid-scale reference frames (design width in px) */
+  --mobile: 390;
+  --desktop: 1440;
+
+  /* motion */
+  --ease-standard: cubic-bezier(0.65, 0, 0.35, 1);
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+}

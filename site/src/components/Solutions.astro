@@ -1,0 +1,298 @@
+---
+import { network, stack, rings, contours } from "../lib/illustrations";
+
+const items = [
+  {
+    title: "Brainstorming, uninterrupted",
+    text: "Run a workshop without touching the network. Every idea lands on disk the instant you draw it.",
+    art: network(),
+  },
+  {
+    title: "Diagrams without lock-in",
+    text: "Architecture maps, flowcharts and plans kept as a portable, versioned file you can export whole.",
+    art: stack(),
+  },
+  {
+    title: "Classrooms without Wi-Fi",
+    text: "Bring the board into a room with zero signal. Opening, editing, saving and exporting all still work.",
+    art: rings(),
+  },
+  {
+    title: "Field notes, mapped out",
+    text: "Sketch on location and sync later — only if you want to. Nothing waits on a connection.",
+    art: contours(),
+  },
+];
+---
+
+<section class="solutions" id="use-cases" aria-labelledby="use-cases-title">
+  <div class="solutions-header -w">
+    <h2 class="solutions-title -t4" id="use-cases-title" data-rise>
+      <span><span>Built for work that</span></span>
+      <span><span>can't wait for Wi-Fi</span></span>
+    </h2>
+    <div class="solutions-controls">
+      <button class="control" type="button" data-dir="-1" aria-label="Previous use case">
+        <svg viewBox="0 0 16 12" fill="none" aria-hidden="true"><path d="M6 1 1 6l5 5M1 6h15" stroke="currentColor" stroke-width="1.6" /></svg>
+      </button>
+      <button class="control" type="button" data-dir="1" aria-label="Next use case">
+        <svg viewBox="0 0 16 12" fill="none" aria-hidden="true"><path d="m10 1 5 5-5 5m5-5H0" stroke="currentColor" stroke-width="1.6" /></svg>
+      </button>
+    </div>
+  </div>
+
+  <div class="solutions-track" data-track tabindex="0" aria-label="Use cases, scrollable">
+    {
+      items.map((item, i) => (
+        <article class="solution">
+          <span class="rule rule-top" data-line="x" aria-hidden="true" />
+          <span class="rule rule-bottom" data-line="x" aria-hidden="true" />
+          <span class="rule rule-side" data-line="y" aria-hidden="true" />
+          <p class="solution-index -p">{String(i + 1).padStart(2, "0")} / {String(items.length).padStart(2, "0")}</p>
+          <div class="solution-art" set:html={item.art} />
+          <h3 class="solution-title -p2">{item.title}</h3>
+          <p class="solution-text -p">{item.text}</p>
+        </article>
+      ))
+    }
+  </div>
+</section>
+
+<script>
+  document.querySelectorAll<HTMLElement>(".solutions").forEach((section) => {
+    const track = section.querySelector<HTMLElement>("[data-track]");
+    if (!track) return;
+
+    const buttons = section.querySelectorAll<HTMLButtonElement>(".control");
+    const step = () => track.querySelector<HTMLElement>(".solution")?.offsetWidth ?? 320;
+
+    const sync = () => {
+      const max = track.scrollWidth - track.clientWidth - 2;
+      buttons[0].disabled = track.scrollLeft <= 2;
+      buttons[1].disabled = track.scrollLeft >= max;
+    };
+
+    buttons.forEach((btn) =>
+      btn.addEventListener("click", () =>
+        track.scrollBy({ left: Number(btn.dataset.dir) * step(), behavior: "smooth" }),
+      ),
+    );
+    track.addEventListener("scroll", sync, { passive: true });
+    window.addEventListener("resize", sync);
+    sync();
+
+    // mouse drag (touch already scrolls natively)
+    let startX = 0;
+    let startScroll = 0;
+    let dragging = false;
+    let moved = false;
+
+    track.addEventListener("pointerdown", (e) => {
+      if (e.pointerType !== "mouse") return;
+      dragging = true;
+      moved = false;
+      startX = e.clientX;
+      startScroll = track.scrollLeft;
+      track.classList.add("is-dragging");
+    });
+    window.addEventListener("pointermove", (e) => {
+      if (!dragging) return;
+      const dx = e.clientX - startX;
+      if (Math.abs(dx) > 3) moved = true;
+      track.scrollLeft = startScroll - dx;
+    });
+    window.addEventListener("pointerup", () => {
+      if (!dragging) return;
+      dragging = false;
+      track.classList.remove("is-dragging");
+      if (moved) {
+        const s = step();
+        track.scrollTo({ left: Math.round(track.scrollLeft / s) * s, behavior: "smooth" });
+      }
+    });
+  });
+</script>
+
+<style>
+  .solutions {
+    background: var(--surface);
+    padding-top: 8rem;
+    overflow: hidden;
+  }
+
+  @media screen and (min-width: 750px) {
+    .solutions {
+      padding-top: 12rem;
+    }
+  }
+
+  .solutions-header {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 2.4rem;
+    margin-bottom: 4rem;
+  }
+
+  .solutions-controls {
+    display: none;
+    gap: 12px;
+  }
+
+  @media screen and (min-width: 750px) {
+    .solutions-controls {
+      display: flex;
+    }
+  }
+
+  .control {
+    display: grid;
+    place-items: center;
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    background: var(--ink-primary);
+    color: var(--canvas);
+    transition: transform 0.3s var(--ease-out), opacity 0.3s;
+  }
+
+  .control svg {
+    width: 16px;
+  }
+
+  .control:hover:not(:disabled) {
+    transform: scale(1.08);
+  }
+
+  .control:disabled {
+    opacity: 0.25;
+    cursor: default;
+  }
+
+  .solutions-track {
+    display: grid;
+    grid-auto-flow: column;
+    grid-auto-columns: 32rem;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    scrollbar-width: none;
+    cursor: grab;
+    user-select: none;
+  }
+
+  .solutions-track::-webkit-scrollbar {
+    display: none;
+  }
+
+  @media screen and (min-width: 750px) {
+    .solutions-track {
+      grid-auto-columns: 48rem;
+    }
+  }
+
+  @media screen and (min-width: 1440px) {
+    .solutions-track {
+      grid-auto-columns: calc(100% / 3);
+    }
+  }
+
+  .solutions-track.is-dragging {
+    cursor: grabbing;
+    scroll-snap-type: none;
+  }
+
+  .solution {
+    --card-bg: var(--surface);
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    padding: 2.4rem 1.6rem 3.2rem;
+    scroll-snap-align: start;
+    transition: background 0.35s var(--ease-standard), color 0.35s var(--ease-standard);
+  }
+
+  @media screen and (min-width: 750px) {
+    .solution {
+      padding: 3.2rem 4rem 4rem;
+    }
+  }
+
+  .solution:hover {
+    --card-bg: var(--accent);
+    background: var(--accent);
+    color: var(--accent-ink);
+  }
+
+  .solution-index {
+    color: var(--ink-secondary);
+    transition: color 0.35s;
+  }
+
+  .solution:hover .solution-index,
+  .solution:hover .solution-text {
+    color: var(--accent-ink);
+  }
+
+  .solution-art {
+    height: 26rem;
+    margin: 2.4rem 0 4rem;
+    pointer-events: none;
+  }
+
+  @media screen and (min-width: 750px) {
+    .solution-art {
+      height: 34rem;
+      margin: 4rem 0 8rem;
+    }
+  }
+
+  .solution-art :global(svg) {
+    width: 100%;
+    height: 100%;
+    transition: transform 0.8s var(--ease-out);
+  }
+
+  .solution:hover .solution-art :global(svg) {
+    transform: scale(1.04);
+  }
+
+  .solution-title {
+    margin-bottom: 1.6rem;
+  }
+
+  .solution-text {
+    max-width: 38ch;
+    color: var(--ink-secondary);
+    transition: color 0.35s;
+  }
+
+  .rule {
+    position: absolute;
+    background: var(--line);
+    pointer-events: none;
+  }
+
+  .rule-top,
+  .rule-bottom {
+    left: 0;
+    width: 100%;
+    height: 1px;
+    transform-origin: left center;
+  }
+
+  .rule-top {
+    top: 0;
+  }
+
+  .rule-bottom {
+    bottom: 0;
+  }
+
+  .rule-side {
+    top: 0;
+    right: 0;
+    width: 1px;
+    height: 100%;
+    transform-origin: center top;
+  }
+</style>

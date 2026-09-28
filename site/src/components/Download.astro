@@ -1,0 +1,139 @@
+---
+import DownloadButton from "./DownloadButton.astro";
+import { platforms, release } from "../data/downloads";
+---
+
+<section class="download" id="download" aria-labelledby="download-title">
+  <div class="download-head -w">
+    <div>
+      <p class="download-eyebrow -p" data-reveal>Download · {release.version} — {release.name}</p>
+      <h2 class="download-title -t4" id="download-title" data-rise>
+        <span><span>Get Local Board</span></span>
+        <span><span>on your machine.</span></span>
+      </h2>
+    </div>
+    <a class="download-all -p" href="/download" data-reveal>All downloads & install guide →</a>
+  </div>
+
+  <ul class="platforms -w">
+    {
+      platforms.map((p, i) => (
+        <li class="platform">
+          <span class="rule" data-line="x" aria-hidden="true" />
+          <p class="platform-index -p">{String(i + 1).padStart(2, "0")}</p>
+          <h3 class="platform-name -t5" data-reveal>{p.name}</h3>
+          <p class="platform-detail -p" data-reveal>
+            {p.detail}
+            <br />
+            {p.format} · {p.available ? "Available" : p.eta}
+          </p>
+          <DownloadButton platform={p} class="platform-button" />
+        </li>
+      ))
+    }
+  </ul>
+
+  <p class="download-note -w -p" data-reveal>No account. No sign-in. Nothing to configure after install.</p>
+</section>
+
+<style>
+  .download {
+    background: var(--canvas);
+    padding: 8rem 0;
+  }
+
+  @media screen and (min-width: 750px) {
+    .download {
+      padding: 12rem 0 10rem;
+    }
+  }
+
+  .download-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 2.4rem;
+    margin-bottom: 5.6rem;
+  }
+
+  .download-eyebrow {
+    margin-bottom: 2.4rem;
+    color: var(--ink-secondary);
+  }
+
+  .download-all {
+    border-bottom: 1px solid currentColor;
+    padding-bottom: 2px;
+  }
+
+  .download-all:hover {
+    color: var(--accent);
+  }
+
+  .platform {
+    position: relative;
+    display: grid;
+    grid-template-columns: 4rem 1fr;
+    grid-template-areas:
+      "index name"
+      ". detail"
+      ". button";
+    gap: 1.2rem 1.6rem;
+    align-items: center;
+    padding: 2.4rem 0;
+  }
+
+  @media screen and (min-width: 750px) {
+    .platform {
+      grid-template-columns: 8rem 1fr 1fr auto;
+      grid-template-areas: "index name detail button";
+      gap: 4rem;
+      padding: 3.2rem 0;
+    }
+  }
+
+  .platform:last-child {
+    border-bottom: 1px solid var(--line);
+  }
+
+  .rule {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 1px;
+    background: var(--line);
+    transform-origin: left center;
+  }
+
+  .platform-index {
+    grid-area: index;
+    color: var(--ink-tertiary);
+  }
+
+  .platform-name {
+    grid-area: name;
+  }
+
+  .platform-detail {
+    grid-area: detail;
+    color: var(--ink-secondary);
+  }
+
+  .platform :global(.platform-button) {
+    grid-area: button;
+    justify-self: start;
+  }
+
+  @media screen and (min-width: 750px) {
+    .platform :global(.platform-button) {
+      justify-self: end;
+    }
+  }
+
+  .download-note {
+    margin-top: 3.2rem;
+    color: var(--ink-secondary);
+  }
+</style>

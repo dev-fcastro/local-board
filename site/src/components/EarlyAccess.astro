@@ -1,0 +1,217 @@
+---
+const facts = [
+  { label: "Platforms", value: "Windows first, then macOS and Linux" },
+  { label: "Format", value: ".whiteboard · JSON" },
+  { label: "Account", value: "Not required" },
+];
+---
+
+<section class="early" id="early-access" aria-labelledby="early-title">
+  <div class="early-content -w">
+    <h2 class="early-title -t3" id="early-title" data-rise>
+      <span><span>Ready to take your</span></span>
+      <span><span>board offline?</span></span>
+    </h2>
+
+    <form class="early-form" novalidate>
+      <div class="field" data-reveal>
+        <span class="paren" aria-hidden="true">(</span>
+        <label class="sr-only" for="early-email">Email address</label>
+        <input
+          class="field-input"
+          id="early-email"
+          name="email"
+          type="email"
+          autocomplete="email"
+          placeholder="Enter your email"
+          required
+        />
+        <span class="paren" aria-hidden="true">)</span>
+      </div>
+      <button class="early-submit -p" type="submit" disabled data-reveal>Continue</button>
+      <p class="early-status -p" role="status" aria-live="polite"></p>
+    </form>
+
+    <div class="early-info">
+      <span class="info-rule" data-line="x" aria-hidden="true"></span>
+      <p class="info-lead -p">Early access opens with v0.1 — Local Canvas.</p>
+      {
+        facts.map((fact) => (
+          <div class="info-item">
+            <p class="-p info-label">{fact.label}</p>
+            <p class="-p2">{fact.value}</p>
+          </div>
+        ))
+      }
+    </div>
+  </div>
+</section>
+
+<script>
+  const form = document.querySelector<HTMLFormElement>(".early-form");
+  const input = form?.querySelector<HTMLInputElement>("input[type=email]");
+  const submit = form?.querySelector<HTMLButtonElement>(".early-submit");
+  const status = form?.querySelector<HTMLElement>(".early-status");
+
+  if (form && input && submit && status) {
+    input.addEventListener("input", () => {
+      submit.disabled = !input.checkValidity() || input.value.trim() === "";
+    });
+
+    // No backend yet: acknowledge locally, nothing is sent anywhere.
+    form.addEventListener("submit", (e) => {
+      e.preventDefault();
+      if (!input.checkValidity()) return;
+      status.textContent = "Thanks — we'll write once v0.1 is ready.";
+      input.value = "";
+      submit.disabled = true;
+    });
+  }
+</script>
+
+<style>
+  .early {
+    background: var(--accent);
+    color: var(--accent-ink);
+  }
+
+  .early-content {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    gap: 6.4rem;
+    min-height: 100svh;
+    padding-top: 10rem;
+    padding-bottom: 3.2rem;
+  }
+
+  @media screen and (min-width: 750px) {
+    .early-content {
+      padding-top: 14rem;
+      padding-bottom: 4rem;
+    }
+  }
+
+  .early-title {
+    text-align: center;
+  }
+
+  .early-form {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3.2rem;
+  }
+
+  .field {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 1.6rem;
+    width: 100%;
+    max-width: 56rem;
+  }
+
+  .paren {
+    font-size: 11rem;
+    font-weight: 300;
+    line-height: 1;
+    transform: translateY(-0.06em);
+    transition: transform 0.6s var(--ease-out);
+  }
+
+  .field:focus-within .paren:first-child {
+    transform: translate(-0.8rem, -0.06em);
+  }
+
+  .field:focus-within .paren:last-of-type {
+    transform: translate(0.8rem, -0.06em);
+  }
+
+  @media screen and (min-width: 750px) {
+    .paren {
+      font-size: clamp(90px, 16rem, 220px);
+    }
+  }
+
+  .field-input {
+    flex: 1;
+    min-width: 0;
+    height: 64px;
+    text-align: center;
+    font-size: 2.2rem;
+    border-bottom: 1px solid var(--line-on-accent);
+    outline: none;
+  }
+
+  @media screen and (min-width: 750px) {
+    .field-input {
+      font-size: clamp(18px, 3.2rem, 40px);
+    }
+  }
+
+  .field-input::placeholder {
+    color: var(--accent-ink);
+    opacity: 0.7;
+  }
+
+  .field-input:focus {
+    border-bottom-color: var(--accent-ink);
+  }
+
+  .early-submit {
+    height: 52px;
+    padding: 0 32px;
+    border-radius: 999px;
+    border: 1px solid var(--accent-ink);
+    transition: background 0.25s, color 0.25s, opacity 0.25s;
+  }
+
+  .early-submit:hover:not(:disabled) {
+    background: var(--accent-ink);
+    color: var(--accent);
+  }
+
+  .early-submit:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+  }
+
+  .early-status:empty {
+    display: none;
+  }
+
+  .early-info {
+    position: relative;
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 2.4rem;
+    padding-top: 3.2rem;
+  }
+
+  @media screen and (min-width: 750px) {
+    .early-info {
+      grid-template-columns: 2fr 1fr 1fr 1fr;
+      gap: 4rem;
+    }
+  }
+
+  .info-rule {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 1px;
+    background: var(--line-on-accent);
+    transform-origin: left center;
+  }
+
+  .info-lead {
+    max-width: 22ch;
+  }
+
+  .info-label {
+    margin-bottom: 0.8rem;
+    opacity: 0.75;
+  }
+</style>

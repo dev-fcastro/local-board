@@ -1,0 +1,237 @@
+---
+import logoFull from "../assets/logo-full.svg?raw";
+
+const links = [
+  { href: "#use-cases", label: "Use cases" },
+  { href: "#format", label: "The format" },
+  { href: "#principles", label: "Principles" },
+  { href: "#early-access", label: "Early access" },
+];
+---
+
+<header class="header -w">
+  <a class="brand" href="/" aria-label="Local Board — home" set:html={logoFull} />
+</header>
+
+<button class="menu-toggle" type="button" aria-expanded="false" aria-controls="site-menu">
+  <span class="burger" aria-hidden="true"><span></span><span></span></span>
+  <span class="toggle-label -p" data-open-label="Close" data-closed-label="Menu">Menu</span>
+</button>
+
+<div class="menu" id="site-menu" data-open="false" inert>
+  <nav class="menu-content -w" aria-label="Primary">
+    <ol class="menu-list">
+      {
+        links.map((link, i) => (
+          <li class="menu-item">
+            <a class="menu-link -t2" href={link.href}>
+              <span class="menu-index -p">{String(i + 1).padStart(2, "0")}</span>
+              {link.label}
+            </a>
+          </li>
+        ))
+      }
+    </ol>
+    <p class="menu-foot -p">Local first. User first. Portable format first. Cloud later.</p>
+  </nav>
+</div>
+
+<script>
+  const toggle = document.querySelector<HTMLButtonElement>(".menu-toggle");
+  const menu = document.querySelector<HTMLElement>("#site-menu");
+  const label = toggle?.querySelector<HTMLElement>(".toggle-label");
+
+  if (toggle && menu && label) {
+    const setOpen = (open: boolean) => {
+      menu.dataset.open = String(open);
+      menu.inert = !open;
+      toggle.setAttribute("aria-expanded", String(open));
+      label.textContent = open ? label.dataset.openLabel! : label.dataset.closedLabel!;
+      document.documentElement.style.overflow = open ? "hidden" : "";
+      if (open) menu.querySelector<HTMLAnchorElement>(".menu-link")?.focus();
+    };
+
+    toggle.addEventListener("click", () => setOpen(menu.dataset.open !== "true"));
+    menu.querySelectorAll("a").forEach((a) => a.addEventListener("click", () => setOpen(false)));
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape" && menu.dataset.open === "true") {
+        setOpen(false);
+        toggle.focus();
+      }
+    });
+  }
+</script>
+
+<style>
+  .header {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 20;
+    display: flex;
+    align-items: center;
+    height: 8rem;
+    pointer-events: none;
+  }
+
+  @media screen and (min-width: 750px) {
+    .header {
+      height: 12rem;
+    }
+  }
+
+  .brand {
+    pointer-events: auto;
+    width: 15rem;
+    color: var(--accent-ink);
+  }
+
+  @media screen and (min-width: 750px) {
+    .brand {
+      width: clamp(150px, 19rem, 260px);
+    }
+  }
+
+  .brand :global(svg) {
+    display: block;
+    width: 100%;
+    height: auto;
+  }
+
+  .brand :global(text) {
+    font-family: var(--font-sans);
+  }
+
+  .menu-toggle {
+    position: fixed;
+    z-index: 60;
+    top: 2rem;
+    right: 1.6rem;
+    display: flex;
+    align-items: center;
+    gap: 1.2rem;
+    height: 44px;
+    padding: 0 18px;
+    border-radius: 999px;
+    background: var(--ink-primary);
+    color: var(--canvas);
+    box-shadow: 0 0 0 1px var(--line-on-dark);
+    transition: background 0.3s var(--ease-standard), color 0.3s var(--ease-standard);
+  }
+
+  @media screen and (min-width: 750px) {
+    .menu-toggle {
+      top: 3.8rem;
+      right: 4rem;
+    }
+  }
+
+  .menu-toggle[aria-expanded="true"] {
+    background: var(--canvas);
+    color: var(--ink-primary);
+  }
+
+  .burger {
+    display: grid;
+    gap: 5px;
+    width: 22px;
+  }
+
+  .burger span {
+    display: block;
+    height: 1.5px;
+    background: currentColor;
+    transition: transform 0.4s var(--ease-out);
+  }
+
+  .burger span:last-child {
+    width: 60%;
+    justify-self: end;
+  }
+
+  .menu-toggle[aria-expanded="true"] .burger span:first-child {
+    transform: translateY(3.25px) rotate(45deg);
+  }
+
+  .menu-toggle[aria-expanded="true"] .burger span:last-child {
+    width: 100%;
+    transform: translateY(-3.25px) rotate(-45deg);
+  }
+
+  .menu {
+    position: fixed;
+    inset: 0;
+    z-index: 50;
+    background: var(--ink-primary);
+    color: var(--canvas);
+    clip-path: circle(0% at calc(100% - 6rem) 6rem);
+    visibility: hidden;
+    transition: clip-path 0.8s var(--ease-out), visibility 0s linear 0.8s;
+  }
+
+  .menu[data-open="true"] {
+    clip-path: circle(150% at calc(100% - 6rem) 6rem);
+    visibility: visible;
+    transition: clip-path 0.9s var(--ease-out), visibility 0s;
+  }
+
+  .menu-content {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    height: 100%;
+    padding-top: 12rem;
+    padding-bottom: 3.2rem;
+  }
+
+  .menu-list {
+    border-top: 1px solid var(--line-on-dark);
+  }
+
+  .menu-item {
+    border-bottom: 1px solid var(--line-on-dark);
+    overflow: hidden;
+  }
+
+  .menu-link {
+    display: flex;
+    align-items: flex-start;
+    gap: 1.6rem;
+    padding: 1.6rem 0 1.2rem;
+    transform: translateY(30%);
+    opacity: 0;
+    transition: transform 0.9s var(--ease-out), opacity 0.6s var(--ease-out), color 0.25s;
+  }
+
+  .menu[data-open="true"] .menu-link {
+    transform: none;
+    opacity: 1;
+  }
+
+  .menu[data-open="true"] .menu-item:nth-child(2) .menu-link {
+    transition-delay: 0.05s;
+  }
+
+  .menu[data-open="true"] .menu-item:nth-child(3) .menu-link {
+    transition-delay: 0.1s;
+  }
+
+  .menu[data-open="true"] .menu-item:nth-child(4) .menu-link {
+    transition-delay: 0.15s;
+  }
+
+  .menu-link:hover {
+    color: var(--accent-on-dark);
+  }
+
+  .menu-index {
+    padding-top: 0.6em;
+    color: var(--ink-tertiary);
+  }
+
+  .menu-foot {
+    color: var(--ink-tertiary);
+    max-width: 36ch;
+  }
+</style>

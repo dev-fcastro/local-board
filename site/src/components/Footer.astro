@@ -1,0 +1,187 @@
+---
+import logo from "../assets/logo.svg?raw";
+
+const nav = [
+  {
+    title: "Product",
+    links: [
+      { href: "#use-cases", label: "Use cases" },
+      { href: "#format", label: "The format" },
+      { href: "#principles", label: "Principles" },
+    ],
+  },
+  {
+    title: "Project",
+    links: [
+      { href: "#early-access", label: "Early access" },
+      { href: "#top", label: "Back to top" },
+    ],
+  },
+];
+---
+
+<footer class="footer">
+  <div class="footer-inner -w">
+    <div class="footer-block" data-mask>
+      <div class="block-row">
+        <a class="footer-logo" href="#top" aria-label="Local Board — back to top" set:html={logo} />
+
+        {
+          nav.map((group) => (
+            <nav class="footer-nav" aria-label={group.title}>
+              <p class="nav-title -p2">
+                {group.title}
+                <sup>{group.links.length}</sup>
+              </p>
+              <ul>
+                {group.links.map((link) => (
+                  <li>
+                    <a class="nav-link -p2" href={link.href}>
+                      <span class="nav-arrow" aria-hidden="true">↳</span>
+                      {link.label}
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </nav>
+          ))
+        }
+      </div>
+
+      <div class="block-row block-row-meta">
+        <p class="-p meta-rule">Local first. User first.<br />Portable format first. Cloud later.</p>
+        <p class="-p">No account required.<br />Works offline.<br />Your files, your disk.</p>
+      </div>
+
+      <svg class="wordmark" viewBox="0 0 1000 158" aria-hidden="true">
+        <text x="0" y="140" textLength="1000" lengthAdjust="spacingAndGlyphs"
+          ><tspan font-weight="700">LOCAL</tspan><tspan font-weight="400">BOARD</tspan></text
+        >
+      </svg>
+    </div>
+
+    <div class="footer-copy -p">
+      <p>© 2026 Local Board</p>
+      <p>Built to work with the lights off.</p>
+      <a href="#top">Back to top ↑</a>
+    </div>
+  </div>
+</footer>
+
+<style>
+  .footer {
+    background: var(--accent);
+    color: var(--accent-ink);
+    padding-bottom: 1.6rem;
+  }
+
+  .footer-block {
+    display: flex;
+    flex-direction: column;
+    gap: 6.4rem;
+    padding: 3.2rem 1.6rem 1.6rem;
+    border-radius: 8px;
+    background: var(--ink-primary);
+    color: var(--accent-on-dark);
+    overflow: hidden;
+  }
+
+  @media screen and (min-width: 750px) {
+    .footer-block {
+      gap: 8rem;
+      padding: 5.6rem 4rem 3.2rem;
+    }
+  }
+
+  .block-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 3.2rem 1.6rem;
+  }
+
+  @media screen and (min-width: 750px) {
+    .block-row {
+      grid-template-columns: 2fr 1fr 1fr;
+      gap: 4rem;
+    }
+  }
+
+  .footer-logo {
+    grid-column: 1 / -1;
+    width: 5.6rem;
+    color: var(--accent-on-dark);
+  }
+
+  @media screen and (min-width: 750px) {
+    .footer-logo {
+      grid-column: auto;
+      width: clamp(48px, 6.4rem, 80px);
+    }
+  }
+
+  .footer-logo :global(svg) {
+    width: 100%;
+    height: auto;
+  }
+
+  .nav-title {
+    margin-bottom: 1.2rem;
+    color: var(--canvas);
+  }
+
+  .nav-title sup {
+    font-size: 0.5em;
+    margin-left: 2px;
+  }
+
+  .nav-link {
+    display: inline-flex;
+    gap: 1.2rem;
+    padding: 0.2rem 0;
+    transition: color 0.2s;
+  }
+
+  .nav-link:hover {
+    color: var(--canvas);
+  }
+
+  .nav-arrow {
+    font-size: 0.7em;
+    padding-top: 0.2em;
+  }
+
+  .block-row-meta {
+    color: var(--ink-tertiary);
+  }
+
+  @media screen and (min-width: 750px) {
+    .meta-rule {
+      grid-column: 2;
+    }
+  }
+
+  .wordmark {
+    width: 100%;
+    height: auto;
+    overflow: visible;
+  }
+
+  .wordmark text {
+    font-family: var(--font-sans);
+    font-size: 176px;
+    letter-spacing: -0.02em;
+    fill: var(--accent);
+  }
+
+  .footer-copy {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 0.8rem 2.4rem;
+    padding-top: 1.6rem;
+  }
+
+  .footer-copy a:hover {
+    text-decoration: underline;
+  }
+</style>

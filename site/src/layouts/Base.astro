@@ -1,0 +1,45 @@
+---
+import "@fontsource-variable/space-grotesk";
+import "@fontsource/space-mono/400.css";
+import "@fontsource/space-mono/700.css";
+import "../styles/global.css";
+
+interface Props {
+  title: string;
+  description?: string;
+}
+
+const {
+  title,
+  description = "Local Board is an offline-first whiteboard. Your boards live on your disk — the cloud is optional, never required.",
+} = Astro.props;
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="description" content={description} />
+    <meta name="theme-color" content="#4f46e5" />
+    <title>{title}</title>
+    <script is:inline>
+      (function () {
+        var d = document.documentElement;
+        if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+        d.classList.add("js-motion");
+        // never leave content hidden if the motion bundle fails to load
+        setTimeout(function () {
+          if (!window.__motionReady) d.classList.remove("js-motion");
+        }, 2500);
+      })();
+    </script>
+  </head>
+  <body>
+    <slot />
+    <script>
+      import "../scripts/motion.ts";
+    </script>
+  </body>
+</html>

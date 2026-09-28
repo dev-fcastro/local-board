@@ -1,0 +1,257 @@
+@import "./tokens.css";
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+/* 1rem = 10px at the 390px mobile frame and at the 1440px desktop frame.
+   Layout uses rem so it scales with the viewport; small text uses clamped px
+   so it never becomes unreadable on in-between widths. */
+html {
+  font-size: calc(100vw / var(--mobile) * 10);
+  -webkit-text-size-adjust: 100%;
+}
+
+@media screen and (min-width: 750px) {
+  html {
+    font-size: calc(100vw / var(--desktop) * 10);
+  }
+}
+
+body {
+  background: var(--canvas);
+  color: var(--ink-primary);
+  font-family: var(--font-sans);
+  font-size: 16px;
+  line-height: 1.4;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
+}
+
+/* film grain over everything, like printed matter */
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  pointer-events: none;
+  opacity: 0.07;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+img,
+svg {
+  display: block;
+  max-width: 100%;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+button,
+input {
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: 0;
+}
+
+button {
+  cursor: pointer;
+}
+
+ul,
+ol {
+  list-style: none;
+}
+
+pre code {
+  font: inherit;
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+
+::selection {
+  background: var(--accent);
+  color: var(--accent-ink);
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+/* horizontal gutter wrapper */
+.-w {
+  padding-left: 1.6rem;
+  padding-right: 1.6rem;
+}
+
+@media screen and (min-width: 750px) {
+  .-w {
+    padding-left: 4rem;
+    padding-right: 4rem;
+  }
+}
+
+/* ---------- type scale ---------- */
+
+h1,
+h2,
+h3,
+h4 {
+  font-weight: 500;
+}
+
+/* hero display */
+.-t1 {
+  font-size: 19vw;
+  font-weight: 500;
+  line-height: 0.9;
+  letter-spacing: -0.045em;
+}
+
+@media screen and (min-width: 1025px) {
+  .-t1 {
+    font-size: 10vw;
+  }
+}
+
+@media screen and (min-width: 1280px) {
+  .-t1 {
+    font-size: 11vw;
+  }
+}
+
+/* overlay menu links */
+.-t2 {
+  font-size: 12vw;
+  font-weight: 500;
+  line-height: 0.95;
+  letter-spacing: -0.035em;
+}
+
+@media screen and (min-width: 750px) {
+  .-t2 {
+    font-size: 6.4vw;
+  }
+}
+
+/* big centered statements */
+.-t3 {
+  font-size: 9vw;
+  font-weight: 500;
+  line-height: 0.95;
+  letter-spacing: -0.04em;
+}
+
+@media screen and (min-width: 750px) {
+  .-t3 {
+    font-size: 7vw;
+  }
+}
+
+/* section titles */
+.-t4 {
+  font-size: 3.4rem;
+  font-weight: 500;
+  line-height: 1;
+  letter-spacing: -0.025em;
+}
+
+@media screen and (min-width: 750px) {
+  .-t4 {
+    font-size: clamp(34px, 5rem, 72px);
+  }
+}
+
+/* panel titles */
+.-t5 {
+  font-size: 2.6rem;
+  font-weight: 500;
+  line-height: 1.02;
+  letter-spacing: -0.02em;
+}
+
+@media screen and (min-width: 750px) {
+  .-t5 {
+    font-size: clamp(28px, 4rem, 56px);
+  }
+}
+
+/* lead text */
+.-p1 {
+  font-size: 1.8rem;
+  line-height: 1.22;
+  letter-spacing: -0.01em;
+}
+
+@media screen and (min-width: 750px) {
+  .-p1 {
+    font-size: clamp(16px, 2.2rem, 30px);
+  }
+}
+
+/* card titles */
+.-p2 {
+  font-size: clamp(20px, 2.4rem, 32px);
+  line-height: 1.08;
+  letter-spacing: -0.015em;
+}
+
+/* mono micro-labels */
+.-p {
+  font-family: var(--font-mono);
+  font-size: clamp(11px, 1.2rem, 14px);
+  line-height: 1.45;
+  letter-spacing: 0.01em;
+  text-transform: uppercase;
+}
+
+/* ---------- reveal initial states (only when JS runs) ---------- */
+
+.js-motion [data-reveal] {
+  opacity: 0;
+  transform: translateY(2.4rem);
+}
+
+.js-motion [data-mask] {
+  clip-path: inset(100% 0 0 0);
+}
+
+.js-motion [data-line="x"] {
+  transform: scaleX(0);
+}
+
+.js-motion [data-line="y"] {
+  transform: scaleY(0);
+}
+
+.js-motion [data-rise] > span > span {
+  transform: translateY(105%);
+}
+
+[data-rise] > span {
+  display: block;
+  overflow: hidden;
+  padding-bottom: 0.06em;
+  margin-bottom: -0.06em;
+}
+
+[data-rise] > span > span {
+  display: block;
+}
