@@ -1,0 +1,249 @@
+<div
+  class="cc"
+  data-cc
+  data-open="false"
+  role="dialog"
+  aria-modal="false"
+  aria-labelledby="cc-title"
+  aria-describedby="cc-desc"
+  hidden
+>
+  <div class="cc-view" data-view="summary">
+    <p class="cc-eyebrow -p">Cookies</p>
+    <h2 class="cc-title -p2" id="cc-title">Kept to a minimum.</h2>
+    <p class="cc-text" id="cc-desc">
+      This site only remembers your cookie choice. We don't run analytics or ads — if that ever
+      changes, it stays off unless you allow it.
+    </p>
+    <div class="cc-actions">
+      <button class="cc-btn cc-btn-primary -p" type="button" data-cc-accept>Accept all</button>
+      <button class="cc-btn -p" type="button" data-cc-reject>Reject all</button>
+      <button class="cc-link -p" type="button" data-cc-prefs>Preferences</button>
+    </div>
+  </div>
+
+  <div class="cc-view" data-view="prefs" hidden>
+    <p class="cc-eyebrow -p">Cookies</p>
+    <h2 class="cc-title -p2">Your preferences</h2>
+    <ul class="cc-rows">
+      <li class="cc-row">
+        <div>
+          <p class="cc-row-title">Necessary</p>
+          <p class="cc-row-text">Remembers this choice. Always on.</p>
+        </div>
+        <input class="cc-switch" type="checkbox" checked disabled aria-label="Necessary storage, always on" />
+      </li>
+      <li class="cc-row">
+        <div>
+          <p class="cc-row-title">Analytics</p>
+          <p class="cc-row-text">Anonymous visit statistics. Not in use today.</p>
+        </div>
+        <input class="cc-switch" type="checkbox" data-cc-analytics aria-label="Allow analytics" />
+      </li>
+    </ul>
+    <div class="cc-actions">
+      <button class="cc-btn cc-btn-primary -p" type="button" data-cc-save>Save preferences</button>
+      <a class="cc-link -p" href="/terms#cookies">Read more</a>
+    </div>
+  </div>
+</div>
+
+<script>
+  import { readConsent, writeConsent } from "../scripts/consent";
+
+  const root = document.querySelector<HTMLElement>("[data-cc]");
+
+  if (root) {
+    const summary = root.querySelector<HTMLElement>('[data-view="summary"]')!;
+    const prefs = root.querySelector<HTMLElement>('[data-view="prefs"]')!;
+    const analytics = root.querySelector<HTMLInputElement>("[data-cc-analytics]")!;
+
+    const showView = (view: "summary" | "prefs") => {
+      summary.hidden = view !== "summary";
+      prefs.hidden = view !== "prefs";
+    };
+
+    const open = (view: "summary" | "prefs", focus = false) => {
+      analytics.checked = readConsent()?.analytics ?? false;
+      showView(view);
+      root.hidden = false;
+      requestAnimationFrame(() => (root.dataset.open = "true"));
+      if (focus) root.querySelector<HTMLElement>(view === "prefs" ? "input:not([disabled])" : "button")?.focus();
+    };
+
+    const close = () => {
+      root.dataset.open = "false";
+      setTimeout(() => (root.hidden = true), 400);
+    };
+
+    const decide = (allowAnalytics: boolean) => {
+      writeConsent(allowAnalytics);
+      close();
+    };
+
+    root.querySelector("[data-cc-accept]")?.addEventListener("click", () => decide(true));
+    root.querySelector("[data-cc-reject]")?.addEventListener("click", () => decide(false));
+    root.querySelector("[data-cc-save]")?.addEventListener("click", () => decide(analytics.checked));
+    root.querySelector("[data-cc-prefs]")?.addEventListener("click", () => showView("prefs"));
+
+    window.addEventListener("lb:cookie-settings", () => open("prefs", true));
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape" && !root.hidden && readConsent()) close();
+    });
+
+    if (!readConsent()) setTimeout(() => open("summary"), 900);
+  }
+</script>
+
+<style>
+  .cc {
+    position: fixed;
+    z-index: 80;
+    left: 1.2rem;
+    right: 1.2rem;
+    bottom: 1.2rem;
+    max-width: 440px;
+    padding: 2.4rem 2rem 2rem;
+    border-radius: 12px;
+    background: var(--ink-primary);
+    color: var(--canvas);
+    box-shadow: 0 0 0 1px var(--line-on-dark), 0 24px 60px -20px rgba(0, 0, 0, 0.55);
+    opacity: 0;
+    transform: translateY(16px);
+    transition: opacity 0.4s var(--ease-out), transform 0.5s var(--ease-out);
+  }
+
+  @media screen and (min-width: 750px) {
+    .cc {
+      left: 4rem;
+      right: auto;
+      bottom: 4rem;
+      padding: 2.8rem;
+    }
+  }
+
+  .cc[data-open="true"] {
+    opacity: 1;
+    transform: none;
+  }
+
+  .cc-eyebrow {
+    color: var(--accent-on-dark);
+    margin-bottom: 1.2rem;
+  }
+
+  .cc-title {
+    margin-bottom: 1.2rem;
+  }
+
+  .cc-text,
+  .cc-row-text {
+    font-size: 15px;
+    line-height: 1.45;
+    color: var(--ink-tertiary);
+  }
+
+  .cc-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px 12px;
+    margin-top: 2.4rem;
+  }
+
+  .cc-btn {
+    height: 44px;
+    padding: 0 20px;
+    border-radius: 999px;
+    border: 1px solid var(--line-on-dark);
+    transition: background 0.2s, color 0.2s, border-color 0.2s;
+  }
+
+  .cc-btn:hover {
+    border-color: var(--canvas);
+  }
+
+  .cc-btn-primary {
+    background: var(--canvas);
+    color: var(--ink-primary);
+    border-color: var(--canvas);
+  }
+
+  .cc-btn-primary:hover {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: var(--accent-ink);
+  }
+
+  .cc-link {
+    padding: 0 4px;
+    border-bottom: 1px solid currentColor;
+    color: var(--ink-tertiary);
+  }
+
+  .cc-link:hover {
+    color: var(--canvas);
+  }
+
+  .cc-rows {
+    border-top: 1px solid var(--line-on-dark);
+    margin-top: 1.6rem;
+  }
+
+  .cc-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 14px 0;
+    border-bottom: 1px solid var(--line-on-dark);
+  }
+
+  .cc-row-title {
+    font-weight: 500;
+    margin-bottom: 2px;
+  }
+
+  .cc-switch {
+    appearance: none;
+    position: relative;
+    flex-shrink: 0;
+    width: 44px;
+    height: 26px;
+    border-radius: 999px;
+    background: var(--ink-secondary);
+    cursor: pointer;
+    transition: background 0.25s;
+  }
+
+  .cc-switch::after {
+    content: "";
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: var(--canvas);
+    transition: transform 0.3s var(--ease-out);
+  }
+
+  .cc-switch:checked {
+    background: var(--accent);
+  }
+
+  .cc-switch:checked::after {
+    transform: translateX(18px);
+  }
+
+  .cc-switch:disabled {
+    cursor: not-allowed;
+    opacity: 0.6;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .cc {
+      transition: none;
+    }
+  }
+</style>

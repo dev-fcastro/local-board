@@ -14,21 +14,21 @@ const tools = [
 ];
 
 const flow = [
-  { x: 70, label: "Command" },
-  { x: 290, label: "Document" },
-  { x: 510, label: "Change" },
-  { x: 730, label: "Persistence" },
+  { x: 70, label: "Idea" },
+  { x: 290, label: "Sketch" },
+  { x: 510, label: "Review" },
+  { x: 730, label: "Share" },
 ];
 ---
 
-<div class="app" role="img" aria-label="Local Board app window: a board titled roadmap, saved to disk while offline, showing sticky notes and a diagram of how a change flows from command to document to persistence.">
+<div class="app" role="img" aria-label="Local Board app window: a board called Launch plan, saved on the computer while offline, with sticky notes and a simple idea-to-share workflow.">
   <div class="app-bar" aria-hidden="true">
     <div class="bar-file">
       <span class="bar-logo" set:html={logo} />
-      <span class="-p">roadmap.whiteboard</span>
+      <span class="-p">Launch plan</span>
     </div>
     <div class="bar-status">
-      <span class="status-saved -p"><i></i>Saved to disk</span>
+      <span class="status-saved -p"><i></i>Saved</span>
       <span class="status-chip -p">Offline</span>
       <span class="status-zoom -p">100%</span>
     </div>
@@ -59,7 +59,7 @@ const flow = [
 
       <rect width="1000" height="560" fill="url(#lb-dots)" />
 
-      <text x="70" y="190" class="label">How a change travels</text>
+      <text x="70" y="190" class="label">Launch workshop</text>
 
       {
         flow.map((node, i) => (
@@ -73,10 +73,6 @@ const flow = [
         ))
       }
 
-      <line x1="815" y1="280" x2="815" y2="342" class="edge edge-dashed" marker-end="url(#lb-arrow)" />
-      <rect x="730" y="350" width="170" height="56" rx="6" class="node node-optional" />
-      <text x="815" y="384" class="node-text node-text-muted" text-anchor="middle">Sync · optional</text>
-
       <g transform="rotate(-3 155 95)">
         <rect x="70" y="40" width="170" height="110" class="note note-amber" />
         <text x="86" y="74" class="note-text">Works with</text>
@@ -85,13 +81,13 @@ const flow = [
 
       <g transform="rotate(2.5 850 95)">
         <rect x="760" y="36" width="180" height="112" class="note note-indigo" />
-        <text x="776" y="70" class="note-text">Export:</text>
-        <text x="776" y="94" class="note-text">PNG · SVG · PDF</text>
+        <text x="776" y="70" class="note-text">Send to the</text>
+        <text x="776" y="94" class="note-text">team as PDF</text>
       </g>
 
       <g transform="rotate(-1.5 190 420)">
         <rect x="90" y="350" width="210" height="130" class="note note-amber" />
-        <text x="106" y="384" class="note-text">v0.1 — Local Canvas</text>
+        <text x="106" y="384" class="note-text">Next steps</text>
         <line x1="106" y1="408" x2="260" y2="408" class="note-rule" />
         <line x1="106" y1="428" x2="232" y2="428" class="note-rule" />
         <line x1="106" y1="448" x2="248" y2="448" class="note-rule" />
@@ -292,11 +288,6 @@ const flow = [
     stroke-width: 1.5;
   }
 
-  .board :global(.node-optional) {
-    stroke-dasharray: 6 5;
-    stroke: var(--ink-tertiary);
-  }
-
   .board :global(.node-text) {
     font-family: var(--font-sans);
     font-size: 19px;
@@ -304,19 +295,9 @@ const flow = [
     fill: var(--ink-primary);
   }
 
-  .board :global(.node-text-muted) {
-    fill: var(--ink-secondary);
-    font-size: 17px;
-  }
-
   .board :global(.edge) {
     stroke: var(--ink-primary);
     stroke-width: 1.5;
-  }
-
-  .board :global(.edge-dashed) {
-    stroke-dasharray: 5 5;
-    stroke: var(--ink-tertiary);
   }
 
   .board :global(.arrowhead) {

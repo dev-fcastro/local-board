@@ -1,20 +1,16 @@
 ---
 import Base from "../layouts/Base.astro";
-import Header from "../components/Header.astro";
 import Hero from "../components/Hero.astro";
 import Solutions from "../components/Solutions.astro";
-import Format from "../components/Format.astro";
+import YourBoards from "../components/YourBoards.astro";
+import Download from "../components/Download.astro";
 import EarlyAccess from "../components/EarlyAccess.astro";
-import Footer from "../components/Footer.astro";
 ---
 
 <Base title="Local Board — an offline-first whiteboard">
-  <Header />
-  <main id="top">
-    <Hero />
-    <Solutions />
-    <Format />
-    <EarlyAccess />
-  </main>
-  <Footer />
+  <Hero />
+  <Solutions />
+  <YourBoards />
+  <Download />
+  <EarlyAccess />
 </Base>

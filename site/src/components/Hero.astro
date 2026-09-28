@@ -7,22 +7,22 @@ const highlights = [
     text: "Pan, zoom and draw without edges. Pen, shapes, arrows, text, sticky notes and images.",
   },
   {
-    title: "Undo that remembers",
-    text: "Every change is a command, so your history survives a restart — and a crash.",
+    title: "Undo anything",
+    text: "Step back through your changes — even after you close the app and open it again.",
   },
   {
-    title: "Export without internet",
-    text: "PNG, SVG, PDF, JSON or the whole .whiteboard file. No account, no upload.",
+    title: "Share it your way",
+    text: "Save your board as an image or a PDF, or send the whole board to someone else.",
   },
 ];
 
-const status = [
-  { label: "Canvas", state: "Infinite" },
-  { label: "Autosave", state: "On" },
-  { label: "Undo / redo", state: "Command log" },
-  { label: "Crash recovery", state: "Armed" },
-  { label: "Export", state: "PNG · SVG · PDF" },
-  { label: "Cloud sync", state: "Off", off: true },
+const glance = [
+  { label: "Account", state: "Not needed" },
+  { label: "Internet", state: "Not needed" },
+  { label: "Autosave", state: "Always on" },
+  { label: "Your boards", state: "On your computer" },
+  { label: "Export", state: "Image · PDF" },
+  { label: "Cloud", state: "Only if you want", off: true },
 ];
 ---
 
@@ -30,7 +30,7 @@ const status = [
   <div class="hero-block">
     <div class="block-bg" data-mask></div>
     <p class="hero-description -p1" data-reveal>
-      Local Board is a whiteboard that lives on your disk. Draw, save and export with no
+      Local Board is a whiteboard that lives on your computer. Draw, save and share with no
       connection — the cloud is optional, never required.
     </p>
     <h1 class="hero-title -t1" data-rise>
@@ -56,20 +56,17 @@ const status = [
     }
   </ul>
 
-  <aside class="hero-aside" aria-label="Board status">
+  <aside class="hero-aside" aria-label="Local Board at a glance">
     <div class="aside-inner">
       <div class="aside-block">
         <p class="aside-label -p2" data-reveal>The board belongs to you, not to the service.</p>
       </div>
 
       <div class="aside-stats" data-mask data-mask-delay="0.15">
-        <div class="stats-head">
-          <p class="-p1">Board status</p>
-          <p class="stats-file -p">roadmap.whiteboard</p>
-        </div>
+        <p class="stats-title -p1">At a glance</p>
         <ul class="stats-list">
           {
-            status.map((row, i) => (
+            glance.map((row, i) => (
               <li class="stats-item -p">
                 <span class="stats-label">
                   {String(i + 1).padStart(2, "0")}. {row.label}
@@ -80,19 +77,14 @@ const status = [
             ))
           }
         </ul>
-        <pre class="stats-code -p" aria-label="document.json excerpt"><code>{`{
-  "schemaVersion": 1,
-  "boardId": "roadmap",
-  "objects": [ … ]
-}`}</code></pre>
-        <p class="stats-saved -p"><i aria-hidden="true"></i>Saved to disk · 0 requests sent</p>
+        <p class="stats-saved -p"><i aria-hidden="true"></i>Saved on this computer</p>
       </div>
 
-      <a class="aside-cta" href="#early-access" data-mask data-mask-delay="0.3">
+      <a class="aside-cta" href="/download" data-mask data-mask-delay="0.3">
         <svg class="cta-icon" viewBox="0 0 100 100" fill="none" aria-hidden="true">
-          <path d="M50 8v76M18 54l32 32 32-32" stroke="currentColor" stroke-width="12" />
+          <path d="M50 8v66M18 44l32 32 32-32M12 92h76" stroke="currentColor" stroke-width="12" />
         </svg>
-        <span class="cta-label -p2">Join the<br />early access.</span>
+        <span class="cta-label -p2">Download<br />Local Board.</span>
       </a>
     </div>
   </aside>
@@ -327,17 +319,6 @@ const status = [
     }
   }
 
-  .stats-head {
-    display: flex;
-    align-items: baseline;
-    justify-content: space-between;
-    gap: 1.2rem;
-  }
-
-  .stats-file {
-    color: var(--ink-tertiary);
-  }
-
   .stats-list {
     display: grid;
     gap: 2px;
@@ -365,15 +346,6 @@ const status = [
   .dot-off {
     background: none;
     box-shadow: inset 0 0 0 1px var(--ink-tertiary);
-  }
-
-  .stats-code {
-    flex-shrink: 0;
-    padding-left: 1.2rem;
-    border-left: 1px solid var(--line-on-dark);
-    color: var(--ink-tertiary);
-    text-transform: none;
-    white-space: pre;
   }
 
   .stats-saved {

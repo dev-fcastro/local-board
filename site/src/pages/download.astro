@@ -1,0 +1,385 @@
+---
+import Base from "../layouts/Base.astro";
+import PageHero from "../components/PageHero.astro";
+import DownloadButton from "../components/DownloadButton.astro";
+import EarlyAccess from "../components/EarlyAccess.astro";
+import { platforms, release, firstReleaseScope } from "../data/downloads";
+
+const steps = [
+  { title: "Download", text: "Pick the version for your computer. It's a single installer." },
+  { title: "Install", text: "Open it and follow the steps. There's no account to create." },
+  { title: "Start drawing", text: "Create a board. It's saved on your computer as you go." },
+];
+---
+
+<Base
+  title="Download Local Board"
+  description="Download Local Board for Windows, macOS and Linux. No account, no sign-in, no internet needed once installed."
+>
+  <PageHero
+    eyebrow={`Download · ${release.version} — ${release.name}`}
+    lines={["Take your board", "offline."]}
+    description="Local Board runs on your computer and saves every board there. No account, no sign-in, and no internet needed once it's installed."
+  >
+    <div class="hero-download">
+      {
+        platforms.map((p, i) => (
+          <div class="hero-choice" data-choice={p.id} hidden={i !== 0}>
+            <DownloadButton platform={p} tone="light" />
+          </div>
+        ))
+      }
+      <p class="hero-mobile -p" data-mobile-note hidden>
+        Local Board is a desktop app. Open this page on your computer to download it.
+      </p>
+      <a class="hero-other -p" href="#platforms">Other platforms ↓</a>
+    </div>
+  </PageHero>
+
+  <section class="platforms" id="platforms" aria-labelledby="platforms-title">
+    <h2 class="sr-only" id="platforms-title">Platforms</h2>
+    <ul class="platform-grid">
+      {
+        platforms.map((p, i) => (
+          <li class="platform" data-platform-card={p.id}>
+            <span class="rule rule-side" data-line="y" aria-hidden="true" />
+            <div class="platform-top">
+              <p class="platform-index -p">{String(i + 1).padStart(2, "0")}</p>
+              <p class="platform-flag -p">Recommended for you</p>
+            </div>
+            <div>
+              <h3 class="platform-name -t4" data-reveal>{p.name}</h3>
+              <p class="platform-detail -p" data-reveal>
+                {p.detail} · {p.format}
+              </p>
+            </div>
+            <DownloadButton platform={p} />
+          </li>
+        ))
+      }
+    </ul>
+  </section>
+
+  <section class="scope -w" aria-labelledby="scope-title">
+    <div class="scope-intro">
+      <p class="-p scope-eyebrow" data-reveal>First release</p>
+      <h2 class="-t4" id="scope-title" data-rise>
+        <span><span>What's in</span></span>
+        <span><span>{release.version}.</span></span>
+      </h2>
+      <p class="-p1 scope-text" data-reveal>
+        Focused on the essentials: draw, organise your ideas and never lose your work.
+      </p>
+    </div>
+    <ol class="scope-list">
+      {
+        firstReleaseScope.map((item, i) => (
+          <li class="scope-item">
+            <span class="rule rule-top" data-line="x" aria-hidden="true" />
+            <span class="-p scope-num">{String(i + 1).padStart(2, "0")}</span>
+            <span class="-p2">{item}</span>
+          </li>
+        ))
+      }
+    </ol>
+  </section>
+
+  <section class="steps" aria-labelledby="steps-title">
+    <h2 class="steps-title -t4 -w" id="steps-title" data-rise>
+      <span><span>Up and running</span></span>
+      <span><span>in three steps.</span></span>
+    </h2>
+    <ol class="steps-grid">
+      {
+        steps.map((step, i) => (
+          <li class="step">
+            <span class="rule rule-top" data-line="x" aria-hidden="true" />
+            <span class="rule rule-side" data-line="y" aria-hidden="true" />
+            <span class="step-num">{i + 1}</span>
+            <div>
+              <h3 class="-p2 step-title" data-reveal>{step.title}</h3>
+              <p class="-p step-text" data-reveal>{step.text}</p>
+            </div>
+          </li>
+        ))
+      }
+    </ol>
+  </section>
+
+  <EarlyAccess />
+</Base>
+
+<script>
+  const ua = navigator.userAgent;
+  const hint = (
+    (navigator as Navigator & { userAgentData?: { platform?: string } }).userAgentData?.platform ??
+    navigator.platform ??
+    ""
+  ).toLowerCase();
+
+  const isMobile = /android|iphone|ipad|ipod|mobile/i.test(ua);
+  const os = isMobile
+    ? null
+    : /win/.test(hint) || /windows/i.test(ua)
+      ? "windows"
+      : /mac/.test(hint) || /mac os/i.test(ua)
+        ? "macos"
+        : /linux|x11/i.test(hint + ua)
+          ? "linux"
+          : null;
+
+  if (isMobile) {
+    document.querySelectorAll<HTMLElement>("[data-choice]").forEach((el) => (el.hidden = true));
+    document.querySelector<HTMLElement>("[data-mobile-note]")!.hidden = false;
+  } else if (os) {
+    document.querySelectorAll<HTMLElement>("[data-choice]").forEach((el) => {
+      el.hidden = el.dataset.choice !== os;
+    });
+    document.querySelector(`[data-platform-card="${os}"]`)?.setAttribute("data-recommended", "");
+  }
+</script>
+
+<style>
+  .hero-download {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1.6rem;
+  }
+
+  @media screen and (min-width: 1025px) {
+    .hero-download {
+      align-items: flex-end;
+    }
+  }
+
+  .hero-mobile {
+    max-width: 32ch;
+  }
+
+  .hero-other {
+    border-bottom: 1px solid currentColor;
+    opacity: 0.85;
+  }
+
+  /* ---------- platforms ---------- */
+
+  .platform-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    background: var(--surface);
+  }
+
+  @media screen and (min-width: 750px) {
+    .platform-grid {
+      grid-template-columns: repeat(3, 1fr);
+    }
+  }
+
+  .platform {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 4rem;
+    min-height: 32rem;
+    padding: 3.2rem 1.6rem;
+    border-bottom: 1px solid var(--line);
+    transition: background 0.35s var(--ease-standard);
+  }
+
+  @media screen and (min-width: 750px) {
+    .platform {
+      min-height: 48rem;
+      padding: 4rem;
+      border-bottom: 0;
+    }
+  }
+
+  .platform[data-recommended] {
+    background: var(--canvas);
+    box-shadow: inset 0 4px 0 var(--accent);
+  }
+
+  .platform-top {
+    display: flex;
+    justify-content: space-between;
+    gap: 1.6rem;
+    width: 100%;
+  }
+
+  .platform-index,
+  .platform-detail {
+    color: var(--ink-secondary);
+  }
+
+  .platform-flag {
+    display: none;
+    color: var(--accent);
+  }
+
+  .platform[data-recommended] .platform-flag {
+    display: block;
+  }
+
+  .platform-name {
+    margin-bottom: 1.2rem;
+  }
+
+  /* ---------- first release scope ---------- */
+
+  .scope {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 4.8rem;
+    padding-top: 8rem;
+    padding-bottom: 8rem;
+  }
+
+  @media screen and (min-width: 1025px) {
+    .scope {
+      grid-template-columns: 1fr 1fr;
+      gap: 8rem;
+      padding-top: 12rem;
+      padding-bottom: 12rem;
+    }
+  }
+
+  @media screen and (min-width: 1025px) {
+    .scope-intro {
+      position: sticky;
+      top: 4rem;
+      align-self: start;
+    }
+  }
+
+  .scope-eyebrow {
+    margin-bottom: 2.4rem;
+    color: var(--ink-secondary);
+  }
+
+  .scope-text {
+    margin-top: 2.4rem;
+    max-width: 30ch;
+    color: var(--ink-secondary);
+  }
+
+  .scope-item {
+    position: relative;
+    display: grid;
+    grid-template-columns: 5.6rem 1fr;
+    align-items: baseline;
+    padding: 2rem 0;
+  }
+
+  .scope-item:last-child {
+    border-bottom: 1px solid var(--line);
+  }
+
+  .scope-num {
+    color: var(--ink-tertiary);
+  }
+
+  /* ---------- steps ---------- */
+
+  .steps {
+    background: var(--ink-primary);
+    color: var(--canvas);
+    padding-top: 8rem;
+  }
+
+  @media screen and (min-width: 750px) {
+    .steps {
+      padding-top: 12rem;
+    }
+  }
+
+  .steps-title {
+    margin-bottom: 5.6rem;
+  }
+
+  .steps-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  @media screen and (min-width: 750px) {
+    .steps-grid {
+      grid-template-columns: repeat(3, 1fr);
+    }
+  }
+
+  .step {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    gap: 4rem;
+    min-height: 28rem;
+    padding: 3.2rem 1.6rem;
+  }
+
+  @media screen and (min-width: 750px) {
+    .step {
+      min-height: 40rem;
+      padding: 4rem;
+    }
+  }
+
+  .step-num {
+    font-size: clamp(64px, 12rem, 160px);
+    font-weight: 500;
+    line-height: 0.8;
+    letter-spacing: -0.05em;
+    color: var(--accent-on-dark);
+  }
+
+  .step-title {
+    margin-bottom: 1.2rem;
+  }
+
+  .step-text {
+    max-width: 32ch;
+    color: var(--ink-tertiary);
+  }
+
+  /* ---------- rules ---------- */
+
+  .rule {
+    position: absolute;
+    pointer-events: none;
+    background: var(--line);
+  }
+
+  .steps .rule {
+    background: var(--line-on-dark);
+  }
+
+  .rule-top {
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 1px;
+    transform-origin: left center;
+  }
+
+  .rule-side {
+    top: 0;
+    right: 0;
+    width: 1px;
+    height: 100%;
+    transform-origin: center top;
+  }
+
+  .platform:last-child .rule-side,
+  .step:last-child .rule-side {
+    display: none;
+  }
+
+  @media screen and (max-width: 749px) {
+    .rule-side {
+      display: none;
+    }
+  }
+</style>

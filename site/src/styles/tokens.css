@@ -12,6 +12,7 @@
   --canvas-elevated: #ffffff;
   --surface: #e6e5e1;       /* two-tone panels, ~13:1 with --ink-primary */
   --surface-strong: #d6d5d0;
+  --ink-raised: #222327;    /* raised panels on dark sections */
 
   /* ink */
   --ink-primary: #17181a;   /* ~16.5:1 on --canvas (AAA) */

@@ -53,19 +53,15 @@ export const platforms: Platform[] = [
 
 export const downloadUrl = (p: Platform) => `${RELEASES_URL}/latest/download/${p.file}`;
 
-export const v01Scope = [
+export const firstReleaseScope = [
   "Infinite canvas",
   "Pan and zoom",
   "Pen",
-  "Selection",
-  "Rectangle",
-  "Circle",
-  "Line",
+  "Rectangles, circles and lines",
   "Text",
-  "Delete",
+  "Select, move and delete",
   "Undo and redo",
-  "Autosave",
-  "Reopen exactly where you left",
-  "Versioned file format",
-  "No internet required",
+  "Automatic saving",
+  "Reopens exactly where you left it",
+  "Works without internet",
 ];

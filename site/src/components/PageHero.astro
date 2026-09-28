@@ -1,0 +1,95 @@
+---
+interface Props {
+  eyebrow: string;
+  lines: string[];
+  description?: string;
+}
+
+const { eyebrow, lines, description } = Astro.props;
+---
+
+<section class="page-hero">
+  <div class="page-bg" data-mask></div>
+  <div class="page-inner -w">
+    <p class="page-eyebrow -p" data-reveal>{eyebrow}</p>
+    <h1 class="page-title" data-rise>
+      {lines.map((line) => <span><span>{line}</span></span>)}
+    </h1>
+    <div class="page-foot">
+      {description && <p class="page-description -p1" data-reveal>{description}</p>}
+      {
+        Astro.slots.has("default") && (
+          <div class="page-actions" data-reveal>
+            <slot />
+          </div>
+        )
+      }
+    </div>
+  </div>
+</section>
+
+<style>
+  .page-hero {
+    position: relative;
+    color: var(--accent-ink);
+    overflow: hidden;
+  }
+
+  .page-bg {
+    position: absolute;
+    inset: 0;
+    background: var(--accent);
+  }
+
+  .page-inner {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 3.2rem;
+    padding-top: 13rem;
+    padding-bottom: 4rem;
+  }
+
+  @media screen and (min-width: 750px) {
+    .page-inner {
+      gap: 4rem;
+      padding-top: 20rem;
+      padding-bottom: 5.6rem;
+    }
+  }
+
+  .page-eyebrow {
+    opacity: 0.8;
+  }
+
+  .page-title {
+    font-size: 15vw;
+    font-weight: 500;
+    line-height: 0.92;
+    letter-spacing: -0.045em;
+  }
+
+  @media screen and (min-width: 750px) {
+    .page-title {
+      font-size: 9vw;
+    }
+  }
+
+  .page-foot {
+    display: flex;
+    flex-direction: column;
+    gap: 3.2rem;
+  }
+
+  @media screen and (min-width: 1025px) {
+    .page-foot {
+      flex-direction: row;
+      align-items: flex-end;
+      justify-content: space-between;
+    }
+  }
+
+  .page-description {
+    max-width: 38ch;
+  }
+</style>

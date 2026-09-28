@@ -5,16 +5,17 @@ const nav = [
   {
     title: "Product",
     links: [
-      { href: "#use-cases", label: "Use cases" },
-      { href: "#format", label: "The format" },
-      { href: "#principles", label: "Principles" },
+      { href: "/#use-cases", label: "Use cases" },
+      { href: "/#your-boards", label: "Your boards" },
+      { href: "/download", label: "Download" },
     ],
   },
   {
-    title: "Project",
+    title: "More",
     links: [
-      { href: "#early-access", label: "Early access" },
-      { href: "#top", label: "Back to top" },
+      { href: "/#early-access", label: "Early access" },
+      { href: "/terms", label: "Terms & conditions" },
+      { cookies: true, label: "Cookie settings" },
     ],
   },
 ];
@@ -24,7 +25,7 @@ const nav = [
   <div class="footer-inner -w">
     <div class="footer-block" data-mask>
       <div class="block-row">
-        <a class="footer-logo" href="#top" aria-label="Local Board — back to top" set:html={logo} />
+        <a class="footer-logo" href="/" aria-label="Local Board — home" set:html={logo} />
 
         {
           nav.map((group) => (
@@ -36,10 +37,17 @@ const nav = [
               <ul>
                 {group.links.map((link) => (
                   <li>
-                    <a class="nav-link -p2" href={link.href}>
-                      <span class="nav-arrow" aria-hidden="true">↳</span>
-                      {link.label}
-                    </a>
+                    {"cookies" in link ? (
+                      <button class="nav-link -p2" type="button" data-cookie-settings>
+                        <span class="nav-arrow" aria-hidden="true">↳</span>
+                        {link.label}
+                      </button>
+                    ) : (
+                      <a class="nav-link -p2" href={link.href}>
+                        <span class="nav-arrow" aria-hidden="true">↳</span>
+                        {link.label}
+                      </a>
+                    )}
                   </li>
                 ))}
               </ul>
@@ -49,8 +57,8 @@ const nav = [
       </div>
 
       <div class="block-row block-row-meta">
-        <p class="-p meta-rule">Local first. User first.<br />Portable format first. Cloud later.</p>
-        <p class="-p">No account required.<br />Works offline.<br />Your files, your disk.</p>
+        <p class="-p meta-line">The board belongs to you,<br />not to the service.</p>
+        <p class="-p">No account required.<br />Works offline.<br />Your boards, your computer.</p>
       </div>
 
       <svg class="wordmark" viewBox="0 0 1000 158" aria-hidden="true">
@@ -63,10 +71,16 @@ const nav = [
     <div class="footer-copy -p">
       <p>© 2026 Local Board</p>
       <p>Built to work with the lights off.</p>
-      <a href="#top">Back to top ↑</a>
+      <a href="/terms">Terms & conditions</a>
     </div>
   </div>
 </footer>
+
+<script>
+  document.querySelectorAll("[data-cookie-settings]").forEach((btn) =>
+    btn.addEventListener("click", () => window.dispatchEvent(new CustomEvent("lb:cookie-settings"))),
+  );
+</script>
 
 <style>
   .footer {
@@ -138,6 +152,7 @@ const nav = [
     display: inline-flex;
     gap: 1.2rem;
     padding: 0.2rem 0;
+    text-align: left;
     transition: color 0.2s;
   }
 
@@ -155,7 +170,7 @@ const nav = [
   }
 
   @media screen and (min-width: 750px) {
-    .meta-rule {
+    .meta-line {
       grid-column: 2;
     }
   }
