@@ -90,6 +90,11 @@ void main() {
     await settleIo(tester, until: find.text('Saved'));
     expect(find.text('Saved'), findsOneWidget);
     expect(find.byTooltip('All boards (Ctrl+W)'), findsOneWidget);
+
+    // Close the app and let pending writes finish: Windows cannot delete the
+    // temp folder while a save still has a file open.
+    await tester.pumpWidget(const SizedBox());
+    await settleIo(tester);
   });
 
   test('relative time labels', () {
