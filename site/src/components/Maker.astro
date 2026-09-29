@@ -1,0 +1,90 @@
+---
+// Compact author band between "Early access" and the footer, so the footer
+// keeps its full-screen close.
+const links = [
+  { href: "https://www.fcastro.site/", label: "Portfolio" },
+  { href: "https://github.com/dev-fcastro", label: "GitHub" },
+  { href: "https://linkedin.com/in/fcastrodev", label: "LinkedIn" },
+  { href: "mailto:fcastrodev1@proton.me", label: "Email" },
+  {
+    href: "https://wa.me/18093216900?text=Hola%20Francisco%2C%20vi%20Local%20Board%20y%20quiero%20conversar%20sobre%20un%20proyecto",
+    label: "WhatsApp",
+  },
+];
+---
+
+<section class="maker" aria-label="About the author">
+  <div class="maker-inner -w">
+    <span class="maker-rule" data-line="x" aria-hidden="true"></span>
+    <p class="maker-lead -p">
+      Made by <a class="maker-name" href="https://www.fcastro.site/" rel="author">Francisco Castro</a>, freelance software
+      engineer in Santo Domingo. Need something built? I'm available.
+    </p>
+    <ul class="maker-links">
+      {
+        links.map((l) => (
+          <li>
+            <a class="-p" href={l.href} target={l.href.startsWith("http") ? "_blank" : undefined} rel="noopener">
+              {l.label} ↗
+            </a>
+          </li>
+        ))
+      }
+    </ul>
+  </div>
+</section>
+
+<style>
+  .maker {
+    background: var(--accent);
+    color: var(--accent-ink);
+  }
+
+  .maker-inner {
+    position: relative;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 1.2rem 3.2rem;
+    padding-top: 2rem;
+    padding-bottom: 2rem;
+  }
+
+  .maker-rule {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 1px;
+    background: var(--line-on-accent);
+    transform-origin: left center;
+  }
+
+  .maker-lead {
+    max-width: 62ch;
+    opacity: 0.85;
+  }
+
+  .maker-name {
+    opacity: 1;
+    border-bottom: 1px solid currentColor;
+  }
+
+  .maker-links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem 2rem;
+  }
+
+  .maker-links a {
+    opacity: 0.85;
+    transition: opacity 0.2s;
+  }
+
+  .maker-links a:hover,
+  .maker-name:hover {
+    opacity: 1;
+    text-decoration: underline;
+  }
+</style>
