@@ -23,6 +23,19 @@ pnpm-debug.log*
 .DS_Store
 Thumbs.db
 .idea/
+*.iml
+
+# Dart / Flutter
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+**/linux/flutter/ephemeral/
+
+# release artifacts (published by CI, never committed)
+dist/
+
+# Vercel
+.vercel/
 
 # local tooling
 .claude/

@@ -1,0 +1,87 @@
+name: Release
+
+# Push a tag like v0.1.0 (must match apps/desktop/pubspec.yaml) to build the
+# Linux packages and publish a GitHub release. The website's download buttons
+# point at releases/latest, so they go live as soon as this finishes.
+on:
+  push:
+    tags: ["v*.*.*"]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Existing tag to (re)build, e.g. v0.1.0"
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  linux:
+    name: Linux x86_64
+    runs-on: ubuntu-22.04 # older glibc → runs on more distros
+    env:
+      TAG: ${{ github.event.inputs.tag || github.ref_name }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.TAG }}
+
+      - name: Check tag matches app version
+        run: |
+          V=$(sed -n 's/^version: *\([0-9.]*\).*/\1/p' apps/desktop/pubspec.yaml)
+          echo "pubspec version: $V, tag: $TAG"
+          [ "v$V" = "$TAG" ] || { echo "::error::Tag $TAG does not match pubspec version $V"; exit 1; }
+          echo "VERSION=$V" >> "$GITHUB_ENV"
+
+      - name: Linux build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang cmake ninja-build pkg-config libgtk-3-dev liblzma-dev libstdc++-12-dev file desktop-file-utils
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: 3.47.x
+          cache: true
+
+      - name: Test before shipping
+        run: |
+          flutter pub get
+          (cd packages/core && dart test)
+          (cd packages/persistence && dart test)
+          (cd packages/canvas && flutter test)
+          (cd apps/desktop && flutter test)
+
+      - name: Validate desktop entry
+        run: desktop-file-validate apps/desktop/linux/packaging/dev.fcastro.LocalBoard.desktop
+
+      - name: Build & package
+        run: ./scripts/package-linux.sh
+
+      - name: Release notes
+        run: |
+          cat > notes.md <<EOF
+          ## Local Board ${VERSION} — Linux
+
+          **Install (recommended)**
+          \`\`\`sh
+          curl -fsSL https://localboard-one.vercel.app/install.sh | sh
+          \`\`\`
+
+          **Or download**
+          - \`LocalBoard-${VERSION}-x86_64.AppImage\` — run directly: \`chmod +x LocalBoard-*.AppImage && ./LocalBoard-*.AppImage\`
+          - \`LocalBoard-${VERSION}-linux-x86_64.tar.gz\` — portable bundle
+
+          Checksums in \`SHA256SUMS\`. Windows and macOS builds are not available yet.
+          EOF
+
+      - name: Publish GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          FILES=(dist/LocalBoard-* dist/SHA256SUMS)
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release upload "$TAG" "${FILES[@]}" --clobber
+          else
+            gh release create "$TAG" "${FILES[@]}" --title "Local Board ${VERSION} — Local Canvas" --notes-file notes.md --latest
+          fi

@@ -1,5 +1,11 @@
 // @ts-check
-import { defineConfig } from 'astro/config';
+import { defineConfig } from "astro/config";
+import vercel from "@astrojs/vercel";
 
-// https://astro.build/config
-export default defineConfig({});
+// Pages stay static; only /api/* routes (prerender = false) run as
+// serverless functions on Vercel.
+export default defineConfig({
+  site: "https://localboard-one.vercel.app",
+  output: "static",
+  adapter: vercel(),
+});

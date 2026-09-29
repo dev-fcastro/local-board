@@ -1,0 +1,12 @@
+/// Local Board domain: geometry, board objects, the versioned document,
+/// commands and undo/redo history. No Flutter, no I/O.
+library;
+
+export 'src/commands.dart';
+export 'src/document.dart';
+export 'src/geometry.dart';
+export 'src/history.dart';
+export 'src/ids.dart';
+export 'src/migrations.dart';
+export 'src/objects.dart';
+export 'src/svg_export.dart';

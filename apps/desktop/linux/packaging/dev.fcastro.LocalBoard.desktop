@@ -1,0 +1,13 @@
+[Desktop Entry]
+Type=Application
+Name=Local Board
+GenericName=Whiteboard
+Comment=Local-first whiteboard. Your boards live on your computer.
+Exec=local-board %f
+Icon=dev.fcastro.LocalBoard
+Terminal=false
+Categories=Graphics;2DGraphics;
+Keywords=whiteboard;canvas;draw;sketch;diagram;notes;
+MimeType=application/x-local-board;
+StartupWMClass=dev.fcastro.LocalBoard
+StartupNotify=true

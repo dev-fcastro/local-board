@@ -25,7 +25,7 @@ import { platforms, release } from "../data/downloads";
           <p class="platform-detail -p" data-reveal>
             {p.detail}
             <br />
-            {p.format} · {p.available ? "Available" : p.eta}
+            {p.format} · {p.status}
           </p>
           <DownloadButton platform={p} class="platform-button" />
         </li>
@@ -33,7 +33,9 @@ import { platforms, release } from "../data/downloads";
     }
   </ul>
 
-  <p class="download-note -w -p" data-reveal>No account. No sign-in. Nothing to configure after install.</p>
+  <p class="download-note -w -p" data-reveal>
+    Linux ships first. Windows and macOS versions are not available yet. No account, no sign-in.
+  </p>
 </section>
 
 <style>

@@ -1,0 +1,204 @@
+---
+import { downloadUrl, installCommand, linuxExtras, uninstallCommand } from "../data/downloads";
+
+const appImage = "LocalBoard-x86_64.AppImage";
+const methods = [
+  {
+    title: "One-line install",
+    tag: "Recommended",
+    text: "Downloads the latest version, adds Local Board to your app launcher with its icon and opens .whiteboard files. No root needed.",
+    code: installCommand,
+  },
+  {
+    title: "AppImage",
+    tag: "No install",
+    text: "A single file that runs on any modern distro. Download it, make it executable, open it.",
+    code: `chmod +x ${appImage}\n./${appImage}`,
+  },
+  {
+    title: "Uninstall",
+    tag: "Keeps your boards",
+    text: "Removes the app and launcher entry. Your boards in ~/.local/share/local-board stay where they are.",
+    code: uninstallCommand,
+  },
+];
+---
+
+<section class="install -w" id="install" aria-labelledby="install-title">
+  <div class="install-intro">
+    <p class="-p install-eyebrow" data-reveal>Install on Linux</p>
+    <h2 class="-t4" id="install-title" data-rise>
+      <span><span>Paste it in a</span></span>
+      <span><span>terminal.</span></span>
+    </h2>
+    <p class="-p1 install-text" data-reveal>
+      Works on Ubuntu, Fedora, Debian, Arch and other 64-bit distros. Windows and macOS versions are not available yet.
+    </p>
+    <ul class="install-extras -p">
+      {
+        linuxExtras.map((x) => (
+          <li>
+            <a href={downloadUrl(x.file)} download>
+              ↓ {x.label}
+            </a>
+          </li>
+        ))
+      }
+    </ul>
+  </div>
+
+  <ol class="install-list">
+    {
+      methods.map((m) => (
+        <li class="method">
+          <div class="method-head">
+            <h3 class="-p2 method-title">{m.title}</h3>
+            <span class="-p method-tag">{m.tag}</span>
+          </div>
+          <p class="-p method-text">{m.text}</p>
+          <div class="code">
+            <pre><code>{m.code}</code></pre>
+            <button class="copy -p" type="button" data-copy={m.code} aria-label={`Copy: ${m.title}`}>
+              Copy
+            </button>
+          </div>
+        </li>
+      ))
+    }
+  </ol>
+</section>
+
+<script>
+  document.querySelectorAll<HTMLButtonElement>("[data-copy]").forEach((btn) => {
+    btn.addEventListener("click", async () => {
+      try {
+        await navigator.clipboard.writeText(btn.dataset.copy ?? "");
+        btn.textContent = "Copied";
+      } catch {
+        btn.textContent = "Select & copy";
+      }
+      setTimeout(() => (btn.textContent = "Copy"), 1800);
+    });
+  });
+</script>
+
+<style>
+  .install {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 4.8rem;
+    padding-top: 8rem;
+    padding-bottom: 8rem;
+  }
+
+  @media screen and (min-width: 1025px) {
+    .install {
+      grid-template-columns: 1fr 1.3fr;
+      gap: 8rem;
+      padding-top: 12rem;
+      padding-bottom: 12rem;
+    }
+
+    .install-intro {
+      position: sticky;
+      top: 4rem;
+      align-self: start;
+    }
+  }
+
+  .install-eyebrow {
+    margin-bottom: 2.4rem;
+    color: var(--ink-secondary);
+  }
+
+  .install-text {
+    margin-top: 2.4rem;
+    max-width: 34ch;
+    color: var(--ink-secondary);
+  }
+
+  .install-extras {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1.2rem 2.4rem;
+    margin-top: 3.2rem;
+  }
+
+  .install-extras a {
+    border-bottom: 1px solid currentColor;
+  }
+
+  .install-extras a:hover {
+    color: var(--accent);
+  }
+
+  .install-list {
+    display: flex;
+    flex-direction: column;
+    gap: 3.2rem;
+  }
+
+  .method {
+    padding-top: 2.4rem;
+    border-top: 1px solid var(--line);
+  }
+
+  .method-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 1.6rem;
+    margin-bottom: 1rem;
+  }
+
+  .method-tag {
+    color: var(--accent);
+    white-space: nowrap;
+  }
+
+  .method-text {
+    max-width: 52ch;
+    margin-bottom: 1.6rem;
+    color: var(--ink-secondary);
+  }
+
+  .code {
+    position: relative;
+    display: flex;
+    align-items: flex-start;
+    gap: 1.6rem;
+    padding: 1.6rem 1.6rem 1.6rem 2rem;
+    border-radius: 8px;
+    background: var(--ink-primary);
+    color: var(--canvas);
+  }
+
+  .code pre {
+    flex: 1;
+    min-width: 0;
+    overflow-x: auto;
+    font-family: var(--font-mono);
+    font-size: clamp(12px, 1.4rem, 15px);
+    line-height: 1.7;
+    white-space: pre;
+  }
+
+  .code pre::before {
+    content: "$ ";
+    color: var(--accent-on-dark);
+  }
+
+  .copy {
+    flex-shrink: 0;
+    padding: 0.4rem 1.2rem;
+    border: 1px solid var(--line-on-dark);
+    border-radius: 999px;
+    color: var(--canvas);
+    transition: background 0.2s, color 0.2s;
+  }
+
+  .copy:hover {
+    background: var(--canvas);
+    color: var(--ink-primary);
+  }
+</style>

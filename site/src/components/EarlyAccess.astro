@@ -1,6 +1,6 @@
 ---
 const facts = [
-  { label: "Platforms", value: "Windows first, then macOS and Linux" },
+  { label: "Platforms", value: "Linux now. Windows and macOS later" },
   { label: "Internet", value: "Not needed" },
   { label: "Account", value: "Not required" },
 ];
@@ -28,13 +28,15 @@ const facts = [
         />
         <span class="paren" aria-hidden="true">)</span>
       </div>
+      <!-- Honeypot: hidden from people, bots fill it in. -->
+      <input class="hp" type="text" name="company" tabindex="-1" autocomplete="off" aria-hidden="true" />
       <button class="early-submit -p" type="submit" disabled data-reveal>Continue</button>
       <p class="early-status -p" role="status" aria-live="polite"></p>
     </form>
 
     <div class="early-info">
       <span class="info-rule" data-line="x" aria-hidden="true"></span>
-      <p class="info-lead -p">Early access opens with v0.1 — Local Canvas.</p>
+      <p class="info-lead -p">v0.1 — Local Canvas is out for Linux. Get an email when Windows and macOS land.</p>
       {
         facts.map((fact) => (
           <div class="info-item">
@@ -58,13 +60,35 @@ const facts = [
       submit.disabled = !input.checkValidity() || input.value.trim() === "";
     });
 
-    // No backend yet: acknowledge locally, nothing is sent anywhere.
-    form.addEventListener("submit", (e) => {
+    const honeypot = form.querySelector<HTMLInputElement>("input[name=company]");
+
+    form.addEventListener("submit", async (e) => {
       e.preventDefault();
-      if (!input.checkValidity()) return;
-      status.textContent = "Thanks — we'll write once v0.1 is ready.";
-      input.value = "";
+      if (!input.checkValidity() || submit.dataset.busy) return;
+      submit.dataset.busy = "1";
       submit.disabled = true;
+      submit.textContent = "Sending…";
+      status.textContent = "";
+      try {
+        const res = await fetch("/api/early-access", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ email: input.value, company: honeypot?.value ?? "" }),
+        });
+        const body = await res.json().catch(() => ({}));
+        if (res.ok && body.ok) {
+          status.textContent = "You're on the list — check your inbox for a confirmation.";
+          input.value = "";
+        } else {
+          status.textContent = body.error ?? "Something went wrong. Please try again.";
+        }
+      } catch {
+        status.textContent = "Couldn't reach the server. Check your connection and try again.";
+      } finally {
+        delete submit.dataset.busy;
+        submit.textContent = "Continue";
+        submit.disabled = !input.checkValidity() || input.value.trim() === "";
+      }
     });
   }
 </script>
@@ -175,6 +199,14 @@ const facts = [
   .early-submit:disabled {
     opacity: 0.45;
     cursor: not-allowed;
+  }
+
+  .hp {
+    position: absolute;
+    left: -9999px;
+    width: 1px;
+    height: 1px;
+    opacity: 0;
   }
 
   .early-status:empty {

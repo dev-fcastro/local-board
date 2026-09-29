@@ -1,0 +1,58 @@
+name: CI
+
+on:
+  push:
+    branches: [master, main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: Analyze & test
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: 3.47.x
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Analyze
+        run: |
+          for p in packages/core packages/persistence packages/canvas apps/desktop; do
+            echo "::group::$p"; (cd "$p" && flutter analyze --fatal-infos); echo "::endgroup::"
+          done
+
+      - name: Test (pure Dart)
+        run: |
+          (cd packages/core && dart test)
+          (cd packages/persistence && dart test)
+
+      - name: Test (Flutter)
+        run: |
+          (cd packages/canvas && flutter test)
+          (cd apps/desktop && flutter test)
+
+  site:
+    name: Build website
+    runs-on: ubuntu-24.04
+    defaults:
+      run:
+        working-directory: site
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: site/package-lock.json
+      - run: npm ci
+      - run: npm run build

@@ -1,15 +1,21 @@
-// Single source of truth for downloads. When a release is published on GitHub
-// with these asset names, set `available: true` and the buttons go live.
+// Single source of truth for downloads. The release pipeline
+// (.github/workflows/release.yml) publishes these exact asset names, and the
+// buttons link to /releases/latest/download/<file>, so a new tag updates the
+// site without a redeploy.
 
-export const REPO_URL = "https://github.com/dev-fcastro/Local-Board";
+export const REPO_URL = "https://github.com/dev-fcastro/local-board";
 export const RELEASES_URL = `${REPO_URL}/releases`;
+export const SITE_URL = "https://localboard-one.vercel.app";
 
 export const release = {
-  version: "v0.1",
+  version: "v0.1.0",
   name: "Local Canvas",
 };
 
-export type PlatformId = "windows" | "macos" | "linux";
+export const installCommand = `curl -fsSL ${SITE_URL}/install.sh | sh`;
+export const uninstallCommand = `curl -fsSL ${SITE_URL}/install.sh | sh -s -- --uninstall`;
+
+export type PlatformId = "linux" | "windows" | "macos";
 
 export interface Platform {
   id: PlatformId;
@@ -18,18 +24,29 @@ export interface Platform {
   format: string;
   file: string;
   available: boolean;
-  eta: string;
+  /** Shown instead of a download when not available. */
+  status: string;
 }
 
+// Linux ships first. Windows and macOS are not released yet.
 export const platforms: Platform[] = [
+  {
+    id: "linux",
+    name: "Linux",
+    detail: "64-bit · any modern distro",
+    format: ".AppImage",
+    file: "LocalBoard-x86_64.AppImage",
+    available: true,
+    status: "Available",
+  },
   {
     id: "windows",
     name: "Windows",
-    detail: "64-bit installer",
+    detail: "64-bit",
     format: ".exe",
     file: "LocalBoard-Setup-x64.exe",
     available: false,
-    eta: "With v0.1",
+    status: "Not available yet",
   },
   {
     id: "macos",
@@ -38,30 +55,27 @@ export const platforms: Platform[] = [
     format: ".dmg",
     file: "LocalBoard.dmg",
     available: false,
-    eta: "After v0.1",
-  },
-  {
-    id: "linux",
-    name: "Linux",
-    detail: "64-bit",
-    format: ".AppImage",
-    file: "LocalBoard-x86_64.AppImage",
-    available: false,
-    eta: "After v0.1",
+    status: "Not available yet",
   },
 ];
 
-export const downloadUrl = (p: Platform) => `${RELEASES_URL}/latest/download/${p.file}`;
+export const linuxExtras = [
+  { label: "Portable .tar.gz", file: "LocalBoard-linux-x86_64.tar.gz" },
+  { label: "SHA256 checksums", file: "SHA256SUMS" },
+];
+
+export const downloadUrl = (file: string) => `${RELEASES_URL}/latest/download/${file}`;
 
 export const firstReleaseScope = [
   "Infinite canvas",
   "Pan and zoom",
-  "Pen",
-  "Rectangles, circles and lines",
-  "Text",
-  "Select, move and delete",
+  "Pen and eraser",
+  "Rectangles, ellipses, lines and arrows",
+  "Text and sticky notes",
+  "Select, move, resize and delete",
   "Undo and redo",
-  "Automatic saving",
+  "Automatic saving with crash recovery",
   "Reopens exactly where you left it",
+  "Export to PNG, SVG and .whiteboard",
   "Works without internet",
 ];

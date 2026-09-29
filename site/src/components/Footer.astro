@@ -1,6 +1,23 @@
 ---
 import logo from "../assets/logo.svg?raw";
 
+const maker = {
+  name: "Francisco Castro",
+  role: "Freelance software engineer · Santo Domingo, DR",
+  pitch: "I build web, mobile and desktop products end to end — .NET, Flutter, Angular, offline-first systems and CI/CD. Local Board is one of my open-source projects.",
+  links: [
+    { href: "https://www.fcastro.site/", label: "Portfolio" },
+    { href: "https://www.fcastro.site/about", label: "About me" },
+    { href: "https://github.com/dev-fcastro", label: "GitHub" },
+    { href: "https://linkedin.com/in/fcastrodev", label: "LinkedIn" },
+    { href: "https://sellernet.vercel.app/", label: "DgiiEcf (open source)" },
+  ],
+  contact: [
+    { href: "mailto:fcastrodev1@proton.me", label: "fcastrodev1@proton.me" },
+    { href: "https://wa.me/18093216900?text=Hola%20Francisco%2C%20vi%20Local%20Board%20y%20quiero%20conversar%20sobre%20un%20proyecto", label: "WhatsApp" },
+  ],
+};
+
 const nav = [
   {
     title: "Product",
@@ -56,6 +73,32 @@ const nav = [
         }
       </div>
 
+      <div class="maker" id="maker">
+        <div>
+          <p class="maker-eyebrow -p">Made by</p>
+          <p class="maker-name -t5">
+            <a href="https://www.fcastro.site/" rel="author">{maker.name}</a>
+          </p>
+          <p class="maker-role -p">{maker.role}</p>
+        </div>
+        <div>
+          <p class="maker-pitch -p2">{maker.pitch}</p>
+          <p class="maker-cta -p">Need something built? I'm available for freelance work.</p>
+          <ul class="maker-links">
+            {
+              [...maker.links, ...maker.contact].map((l) => (
+                <li>
+                  <a class="nav-link -p" href={l.href} target={l.href.startsWith("http") ? "_blank" : undefined} rel="noopener">
+                    <span class="nav-arrow" aria-hidden="true">↗</span>
+                    {l.label}
+                  </a>
+                </li>
+              ))
+            }
+          </ul>
+        </div>
+      </div>
+
       <div class="block-row block-row-meta">
         <p class="-p meta-line">The board belongs to you,<br />not to the service.</p>
         <p class="-p">No account required.<br />Works offline.<br />Your boards, your computer.</p>
@@ -69,7 +112,8 @@ const nav = [
     </div>
 
     <div class="footer-copy -p">
-      <p>© 2026 Local Board</p>
+      <p>© 2026 Local Board · MIT · by <a href="https://www.fcastro.site/" rel="author">Francisco Castro</a></p>
+      <a href="https://github.com/dev-fcastro/local-board" target="_blank" rel="noopener">Source on GitHub</a>
       <p>Built to work with the lights off.</p>
       <a href="/terms">Terms & conditions</a>
     </div>
@@ -167,6 +211,52 @@ const nav = [
 
   .block-row-meta {
     color: var(--ink-tertiary);
+  }
+
+  .maker {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 2.4rem;
+    padding-top: 3.2rem;
+    border-top: 1px solid var(--line-on-dark);
+  }
+
+  @media screen and (min-width: 750px) {
+    .maker {
+      grid-template-columns: 2fr 2fr;
+      gap: 4rem;
+    }
+  }
+
+  .maker-eyebrow,
+  .maker-role {
+    color: var(--ink-tertiary);
+  }
+
+  .maker-name {
+    margin: 0.8rem 0;
+    color: var(--canvas);
+  }
+
+  .maker-name a:hover {
+    color: var(--accent-on-dark);
+  }
+
+  .maker-pitch {
+    max-width: 48ch;
+    color: var(--canvas);
+  }
+
+  .maker-cta {
+    margin-top: 1.6rem;
+    color: var(--accent-on-dark);
+  }
+
+  .maker-links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem 2.4rem;
+    margin-top: 1.6rem;
   }
 
   @media screen and (min-width: 750px) {

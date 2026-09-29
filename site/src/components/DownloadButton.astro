@@ -8,12 +8,17 @@ interface Props {
   class?: string;
 }
 
-const { platform, label = `Download for ${platform.name}`, tone = "ink", class: className } = Astro.props;
+const {
+  platform,
+  label = platform.available ? `Download for ${platform.name}` : `${platform.name} version`,
+  tone = "ink",
+  class: className,
+} = Astro.props;
 ---
 
 {
   platform.available ? (
-    <a class:list={["dl", `dl-${tone}`, className]} href={downloadUrl(platform)} data-platform={platform.id}>
+    <a class:list={["dl", `dl-${tone}`, className]} href={downloadUrl(platform.file)} download data-platform={platform.id}>
       <span class="dl-label">{label}</span>
       <svg class="dl-icon" viewBox="0 0 16 16" fill="none" aria-hidden="true">
         <path d="M8 1v10M3.5 7 8 11.5 12.5 7M2 15h12" stroke="currentColor" stroke-width="1.6" />
@@ -22,7 +27,7 @@ const { platform, label = `Download for ${platform.name}`, tone = "ink", class: 
   ) : (
     <span class:list={["dl", `dl-${tone}`, "is-soon", className]} aria-disabled="true" data-platform={platform.id}>
       <span class="dl-label">{label}</span>
-      <span class="dl-eta">{platform.eta}</span>
+      <span class="dl-eta">{platform.status}</span>
     </span>
   )
 }

@@ -1,0 +1,41 @@
+name: local_board_workspace
+description: Local Board monorepo — local-first whiteboard.
+publish_to: none
+
+environment:
+  sdk: ^3.9.0
+
+workspace:
+  - apps/desktop
+  - packages/core
+  - packages/persistence
+  - packages/canvas
+
+dev_dependencies:
+  melos: ^7.0.0
+
+melos:
+  repository: https://github.com/dev-fcastro/local-board
+  scripts:
+    analyze:
+      description: Static analysis for every package.
+      run: dart analyze --fatal-infos .
+    test:dart:
+      description: Pure Dart packages (core, persistence).
+      run: dart test
+      exec:
+        concurrency: 1
+      packageFilters:
+        flutter: false
+        dirExists: test
+    test:flutter:
+      description: Flutter packages (canvas, desktop app).
+      run: flutter test
+      exec:
+        concurrency: 1
+      packageFilters:
+        flutter: true
+        dirExists: test
+    build:linux:
+      description: Release build + AppImage + tar.gz into dist/.
+      run: ./scripts/package-linux.sh

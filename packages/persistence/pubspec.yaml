@@ -1,0 +1,17 @@
+name: local_board_persistence
+description: Crash-safe local storage for Local Board (.whiteboard files, autosave, recovery). Pure Dart.
+version: 0.1.0
+publish_to: none
+
+environment:
+  sdk: ^3.9.0
+
+resolution: workspace
+
+dependencies:
+  local_board_core: any
+  path: ^1.9.0
+
+dev_dependencies:
+  lints: ^6.0.0
+  test: any
