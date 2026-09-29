@@ -63,10 +63,12 @@ export function welcomeEmail(siteUrl: string) {
   const text = [
     "Thanks for joining Local Board early access.",
     "",
-    "Local Board v0.1 is out for Linux. Install it with:",
-    `  curl -fsSL ${siteUrl}/install.sh | sh`,
+    "Local Board v0.1 is out for Windows and Linux.",
     "",
-    "Windows and macOS versions are not available yet — we'll write when they are.",
+    `Windows: download the installer at ${siteUrl}/download`,
+    `Linux: curl -fsSL ${siteUrl}/install.sh | sh`,
+    "",
+    "The macOS version is not available yet — we'll write when it is.",
     "",
     "Your boards stay on your computer. No account needed.",
     "",
@@ -81,9 +83,9 @@ export function welcomeEmail(siteUrl: string) {
 <tr><td style="padding:32px 32px 8px"><p style="margin:0;font-size:13px;letter-spacing:.08em;text-transform:uppercase;color:#4f46e5">Local Board · Early access</p>
 <h1 style="margin:12px 0 0;font-size:26px;line-height:1.2;font-weight:600">You're on the list.</h1></td></tr>
 <tr><td style="padding:16px 32px;font-size:15px;line-height:1.6;color:#55585e">
-<p style="margin:0 0 16px">Local Board v0.1 is out for <strong style="color:#17181a">Linux</strong>. Install it with one command:</p>
+<p style="margin:0 0 16px">Local Board v0.1 is out for <strong style="color:#17181a">Windows</strong> and <strong style="color:#17181a">Linux</strong>. On Windows, get the installer from the download page. On Linux, install it with one command:</p>
 <pre style="margin:0 0 16px;padding:14px 16px;background:#17181a;color:#faf9f9;border-radius:8px;font-size:13px;white-space:pre-wrap;word-break:break-all">curl -fsSL ${esc(siteUrl)}/install.sh | sh</pre>
-<p style="margin:0 0 16px">Windows and macOS versions are not available yet — we'll write when they are.</p>
+<p style="margin:0 0 16px">The macOS version is not available yet — we'll write when it is.</p>
 <p style="margin:0">Your boards stay on your computer. No account needed.</p></td></tr>
 <tr><td style="padding:8px 32px 32px"><a href="${esc(siteUrl)}/download" style="display:inline-block;padding:12px 22px;border-radius:999px;background:#17181a;color:#fff;text-decoration:none;font-size:14px">Download Local Board</a></td></tr>
 </table>

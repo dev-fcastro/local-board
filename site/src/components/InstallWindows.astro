@@ -1,0 +1,155 @@
+---
+import DownloadButton from "./DownloadButton.astro";
+import { downloadUrl, platforms, windowsExtras } from "../data/downloads";
+
+const windows = platforms.find((p) => p.id === "windows")!;
+
+const methods = [
+  {
+    title: "Installer",
+    tag: "Recommended",
+    text: "Run the installer and follow the steps. It installs just for you — no administrator needed — adds Local Board to the Start menu and opens .whiteboard files with a double click.",
+  },
+  {
+    title: "Portable",
+    tag: "No install",
+    text: "Unzip the portable version anywhere, even on a USB stick, and open LocalBoard.exe.",
+  },
+  {
+    title: "If Windows shows a warning",
+    tag: "First run",
+    text: "The installer isn't signed yet, so Windows may say “Windows protected your PC”. Click More info, then Run anyway.",
+  },
+  {
+    title: "Uninstall",
+    tag: "Keeps your boards",
+    text: "Open Settings → Apps → Installed apps, find Local Board and choose Uninstall. Your boards stay on your computer.",
+  },
+];
+---
+
+<section class="install -w" id="install-windows" aria-labelledby="install-windows-title">
+  <div class="install-intro">
+    <p class="-p install-eyebrow" data-reveal>Install on Windows</p>
+    <h2 class="-t4" id="install-windows-title" data-rise>
+      <span><span>Download, open,</span></span>
+      <span><span>done.</span></span>
+    </h2>
+    <p class="-p1 install-text" data-reveal>Works on Windows 10 and Windows 11, 64-bit.</p>
+    <div class="install-cta" data-reveal>
+      <DownloadButton platform={windows} />
+    </div>
+    <ul class="install-extras -p">
+      {
+        windowsExtras.map((x) => (
+          <li>
+            <a href={downloadUrl(x.file)} download>
+              ↓ {x.label}
+            </a>
+          </li>
+        ))
+      }
+    </ul>
+  </div>
+
+  <ol class="install-list">
+    {
+      methods.map((m) => (
+        <li class="method">
+          <div class="method-head">
+            <h3 class="-p2 method-title">{m.title}</h3>
+            <span class="-p method-tag">{m.tag}</span>
+          </div>
+          <p class="method-text">{m.text}</p>
+        </li>
+      ))
+    }
+  </ol>
+</section>
+
+<style>
+  .install {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 4.8rem;
+    padding-top: 8rem;
+    padding-bottom: 8rem;
+    border-bottom: 1px solid var(--line);
+  }
+
+  @media screen and (min-width: 1025px) {
+    .install {
+      grid-template-columns: 1fr 1.3fr;
+      gap: 8rem;
+      padding-top: 12rem;
+      padding-bottom: 12rem;
+    }
+
+    .install-intro {
+      position: sticky;
+      top: 4rem;
+      align-self: start;
+    }
+  }
+
+  .install-eyebrow {
+    margin-bottom: 2.4rem;
+    color: var(--ink-secondary);
+  }
+
+  .install-text {
+    margin-top: 2.4rem;
+    max-width: 34ch;
+    color: var(--ink-secondary);
+  }
+
+  .install-cta {
+    margin-top: 3.2rem;
+  }
+
+  .install-extras {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1.2rem 2.4rem;
+    margin-top: 2.4rem;
+  }
+
+  .install-extras a {
+    border-bottom: 1px solid currentColor;
+  }
+
+  .install-extras a:hover {
+    color: var(--accent);
+  }
+
+  .install-list {
+    display: flex;
+    flex-direction: column;
+    gap: 3.2rem;
+  }
+
+  .method {
+    padding-top: 2.4rem;
+    border-top: 1px solid var(--line);
+  }
+
+  .method-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 1.6rem;
+    margin-bottom: 1rem;
+  }
+
+  .method-tag {
+    color: var(--accent);
+    white-space: nowrap;
+  }
+
+  .method-text {
+    max-width: 52ch;
+    font-size: clamp(16px, 1.7rem, 19px);
+    line-height: 1.55;
+    color: var(--ink-secondary);
+  }
+</style>

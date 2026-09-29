@@ -17,12 +17,13 @@ const highlights = [
 ];
 
 const glance = [
+  { label: "Platforms", state: "Windows · Linux" },
   { label: "Account", state: "Not needed" },
   { label: "Internet", state: "Not needed" },
   { label: "Autosave", state: "Always on" },
   { label: "Your boards", state: "On your computer" },
-  { label: "Export", state: "Image · PDF" },
-  { label: "Cloud", state: "Only if you want", off: true },
+  { label: "Export", state: "PNG · SVG" },
+  { label: "macOS", state: "Not yet", off: true },
 ];
 ---
 
@@ -84,7 +85,10 @@ const glance = [
         <svg class="cta-icon" viewBox="0 0 100 100" fill="none" aria-hidden="true">
           <path d="M50 8v66M18 44l32 32 32-32M12 92h76" stroke="currentColor" stroke-width="12" />
         </svg>
-        <span class="cta-label -p2">Download<br />Local Board.</span>
+        <span class="cta-text">
+          <span class="cta-label -p2">Download<br />Local Board.</span>
+          <span class="cta-platforms -p">Windows · Linux</span>
+        </span>
       </a>
     </div>
   </aside>
@@ -400,6 +404,16 @@ const glance = [
 
   .aside-cta:hover .cta-icon {
     transform: translateY(0.8rem);
+  }
+
+  .cta-text {
+    display: flex;
+    flex-direction: column;
+    gap: 1.2rem;
+  }
+
+  .cta-platforms {
+    opacity: 0.8;
   }
 
   @keyframes blink {

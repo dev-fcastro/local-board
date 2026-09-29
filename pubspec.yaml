@@ -39,3 +39,6 @@ melos:
     build:linux:
       description: Release build + AppImage + tar.gz into dist/.
       run: ./scripts/package-linux.sh
+    build:windows:
+      description: Release build + installer + portable zip into dist/ (needs Inno Setup 6).
+      run: pwsh ./scripts/package-windows.ps1

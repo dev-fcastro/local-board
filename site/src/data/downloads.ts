@@ -28,7 +28,7 @@ export interface Platform {
   status: string;
 }
 
-// Linux ships first. Windows and macOS are not released yet.
+// Windows and Linux are released. macOS is not available yet.
 export const platforms: Platform[] = [
   {
     id: "linux",
@@ -42,11 +42,11 @@ export const platforms: Platform[] = [
   {
     id: "windows",
     name: "Windows",
-    detail: "64-bit",
-    format: ".exe",
+    detail: "Windows 10 and 11 · 64-bit",
+    format: ".exe installer",
     file: "LocalBoard-Setup-x64.exe",
-    available: false,
-    status: "Not available yet",
+    available: true,
+    status: "Available",
   },
   {
     id: "macos",
@@ -57,6 +57,11 @@ export const platforms: Platform[] = [
     available: false,
     status: "Not available yet",
   },
+];
+
+export const windowsExtras = [
+  { label: "Portable .zip", file: "LocalBoard-windows-x64.zip" },
+  { label: "SHA256 checksums", file: "SHA256SUMS" },
 ];
 
 export const linuxExtras = [

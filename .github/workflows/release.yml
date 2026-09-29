@@ -1,8 +1,9 @@
 name: Release
 
 # Push a tag like v0.1.0 (must match apps/desktop/pubspec.yaml) to build the
-# Linux packages and publish a GitHub release. The website's download buttons
-# point at releases/latest, so they go live as soon as this finishes.
+# Linux and Windows packages and publish a GitHub release. The website's
+# download buttons point at releases/latest, so they go live as soon as this
+# finishes.
 on:
   push:
     tags: ["v*.*.*"]
@@ -15,12 +16,13 @@ on:
 permissions:
   contents: write
 
+env:
+  TAG: ${{ github.event.inputs.tag || github.ref_name }}
+
 jobs:
   linux:
     name: Linux x86_64
     runs-on: ubuntu-22.04 # older glibc → runs on more distros
-    env:
-      TAG: ${{ github.event.inputs.tag || github.ref_name }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -31,7 +33,6 @@ jobs:
           V=$(sed -n 's/^version: *\([0-9.]*\).*/\1/p' apps/desktop/pubspec.yaml)
           echo "pubspec version: $V, tag: $TAG"
           [ "v$V" = "$TAG" ] || { echo "::error::Tag $TAG does not match pubspec version $V"; exit 1; }
-          echo "VERSION=$V" >> "$GITHUB_ENV"
 
       - name: Linux build dependencies
         run: |
@@ -58,11 +59,79 @@ jobs:
       - name: Build & package
         run: ./scripts/package-linux.sh
 
+      - uses: actions/upload-artifact@v4
+        with:
+          name: linux
+          path: dist/LocalBoard-*
+          if-no-files-found: error
+
+  windows:
+    name: Windows x64
+    runs-on: windows-2022
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.TAG }}
+
+      - name: Check tag matches app version
+        shell: pwsh
+        run: |
+          $V = (Select-String -Path apps/desktop/pubspec.yaml -Pattern '^version:\s*([0-9.]+)').Matches[0].Groups[1].Value
+          Write-Host "pubspec version: $V, tag: $env:TAG"
+          if ("v$V" -ne $env:TAG) { Write-Error "Tag $env:TAG does not match pubspec version $V"; exit 1 }
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: 3.47.x
+          cache: true
+
+      - name: Test on Windows
+        run: |
+          flutter pub get
+          cd apps/desktop
+          flutter test
+
+      - name: Install Inno Setup
+        run: choco install innosetup -y --no-progress
+
+      - name: Build & package
+        shell: pwsh
+        run: ./scripts/package-windows.ps1
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows
+          path: dist/LocalBoard-*
+          if-no-files-found: error
+
+  publish:
+    name: Publish release
+    needs: [linux, windows]
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+
+      - name: Checksums
+        working-directory: dist
+        run: sha256sum LocalBoard-* > SHA256SUMS && cat SHA256SUMS
+
       - name: Release notes
         run: |
+          VERSION=${TAG#v}
           cat > notes.md <<EOF
-          ## Local Board ${VERSION} — Linux
+          ## Local Board ${VERSION} — Windows & Linux
 
+          ### Windows (10 and 11, 64-bit)
+          - \`LocalBoard-${VERSION}-Setup-x64.exe\` — installer. Installs for your user, no administrator needed. Adds a Start menu entry and opens \`.whiteboard\` files.
+          - \`LocalBoard-${VERSION}-windows-x64.zip\` — portable: unzip and run \`LocalBoard.exe\`.
+
+          The installer isn't code-signed yet, so Windows SmartScreen may show "Windows protected your PC". Click **More info → Run anyway**.
+
+          ### Linux (64-bit)
           **Install (recommended)**
           \`\`\`sh
           curl -fsSL https://localboard-one.vercel.app/install.sh | sh
@@ -72,13 +141,15 @@ jobs:
           - \`LocalBoard-${VERSION}-x86_64.AppImage\` — run directly: \`chmod +x LocalBoard-*.AppImage && ./LocalBoard-*.AppImage\`
           - \`LocalBoard-${VERSION}-linux-x86_64.tar.gz\` — portable bundle
 
-          Checksums in \`SHA256SUMS\`. Windows and macOS builds are not available yet.
+          Checksums for every file are in \`SHA256SUMS\`. macOS is not available yet.
           EOF
 
       - name: Publish GitHub release
         env:
           GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
         run: |
+          VERSION=${TAG#v}
           FILES=(dist/LocalBoard-* dist/SHA256SUMS)
           if gh release view "$TAG" >/dev/null 2>&1; then
             gh release upload "$TAG" "${FILES[@]}" --clobber

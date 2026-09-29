@@ -4,40 +4,43 @@ import PageHero from "../components/PageHero.astro";
 import DownloadButton from "../components/DownloadButton.astro";
 import EarlyAccess from "../components/EarlyAccess.astro";
 import InstallLinux from "../components/InstallLinux.astro";
+import InstallWindows from "../components/InstallWindows.astro";
 import { platforms, release, firstReleaseScope } from "../data/downloads";
 
 const steps = [
-  { title: "Install", text: "Paste one command in a terminal, or download the AppImage and run it." },
-  { title: "Open", text: "Find Local Board in your app launcher. There's no account to create." },
+  { title: "Install", text: "Run the installer on Windows, or paste one command on Linux." },
+  { title: "Open", text: "Find Local Board in the Start menu or your app launcher. No account to create." },
   { title: "Start drawing", text: "Create a board. It's saved on your computer as you go." },
 ];
 ---
 
 <Base
-  title="Download Local Board"
-  description="Download Local Board for Linux. Windows and macOS versions are not available yet. No account, no sign-in, no internet needed once installed."
+  title="Download Local Board for Windows & Linux"
+  description="Download Local Board for Windows and Linux. The macOS version is not available yet. No account, no sign-in, no internet needed once installed."
 >
   <PageHero
-    eyebrow={`Download · ${release.version} — ${release.name}`}
+    eyebrow={`Download · ${release.version} — ${release.name} · Windows & Linux`}
     lines={["Take your board", "offline."]}
-    description="Local Board runs on your computer and saves every board there. No account, no sign-in, and no internet needed once it's installed."
+    description="Ready for Windows and Linux. Local Board runs on your computer and saves every board there — no account, no sign-in, no internet needed once it's installed."
   >
     <div class="hero-download">
       {
-        platforms.map((p, i) => (
-          <div class="hero-choice" data-choice={p.id} hidden={i !== 0}>
-            <DownloadButton platform={p} tone="light" />
-          </div>
-        ))
+        platforms
+          .filter((p) => p.available)
+          .map((p) => (
+            <div class="hero-choice" data-choice={p.id} hidden={p.id !== "windows"}>
+              <DownloadButton platform={p} tone="light" />
+            </div>
+          ))
       }
-      <p class="hero-note -p" data-other-os-note hidden>
-        Local Board is available for Linux only right now. Windows and macOS versions are not available yet — join
-        early access below to hear when they are.
+      <p class="hero-note -p" data-mac-note hidden>
+        The macOS version is not available yet. Windows and Linux are ready — join early access below to hear when
+        macOS lands.
       </p>
       <p class="hero-mobile -p" data-mobile-note hidden>
         Local Board is a desktop app. Open this page on your computer to download it.
       </p>
-      <a class="hero-other -p" href="#install">Install commands ↓</a>
+      <a class="hero-other -p" href="#platforms">All platforms ↓</a>
     </div>
   </PageHero>
 
@@ -65,6 +68,7 @@ const steps = [
     </ul>
   </section>
 
+  <InstallWindows />
   <InstallLinux />
 
   <section class="scope -w" aria-labelledby="scope-title">
@@ -138,13 +142,14 @@ const steps = [
   if (isMobile) {
     document.querySelectorAll<HTMLElement>("[data-choice]").forEach((el) => (el.hidden = true));
     document.querySelector<HTMLElement>("[data-mobile-note]")!.hidden = false;
+  } else if (os === "macos") {
+    // No macOS build yet: explain instead of offering the wrong download.
+    document.querySelectorAll<HTMLElement>("[data-choice]").forEach((el) => (el.hidden = true));
+    document.querySelector<HTMLElement>("[data-mac-note]")!.hidden = false;
   } else if (os) {
-    // Always offer the Linux download in the hero; on other systems explain
-    // that their version is not out yet.
     document.querySelectorAll<HTMLElement>("[data-choice]").forEach((el) => {
-      el.hidden = el.dataset.choice !== "linux";
+      el.hidden = el.dataset.choice !== os;
     });
-    if (os !== "linux") document.querySelector<HTMLElement>("[data-other-os-note]")!.hidden = false;
     document.querySelector(`[data-platform-card="${os}"]`)?.setAttribute("data-recommended", "");
   }
 </script>
