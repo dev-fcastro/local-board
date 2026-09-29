@@ -36,7 +36,7 @@ const facts = [
 
     <div class="early-info">
       <span class="info-rule" data-line="x" aria-hidden="true"></span>
-      <p class="info-lead -p">v0.1 — Local Canvas is out for Windows and Linux. Get an email when macOS lands.</p>
+      <p class="info-lead -p">v0.1 · Local Canvas is out for Windows and Linux. Get an email when macOS lands.</p>
       {
         facts.map((fact) => (
           <div class="info-item">
@@ -77,7 +77,7 @@ const facts = [
         });
         const body = await res.json().catch(() => ({}));
         if (res.ok && body.ok) {
-          status.textContent = "You're on the list — check your inbox for a confirmation.";
+          status.textContent = "You're on the list. Check your inbox for a confirmation.";
           input.value = "";
         } else {
           status.textContent = body.error ?? "Something went wrong. Please try again.";
