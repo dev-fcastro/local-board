@@ -4,7 +4,10 @@ import 'package:flutter/services.dart';
 import 'package:local_board_canvas/local_board_canvas.dart';
 import 'package:local_board_persistence/local_board_persistence.dart';
 
+import 'app.dart' show appVersion;
 import 'editor_screen.dart';
+import 'services.dart';
+import 'settings_screen.dart';
 import 'widgets.dart';
 
 /// "Your boards": every board on this computer, newest first.
@@ -21,11 +24,33 @@ class _HomeScreenState extends State<HomeScreen> {
   List<BoardSummary>? _boards;
 
   BoardStore get store => widget.store;
+  AppServices? _services;
 
   @override
   void initState() {
     super.initState();
     _reload();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final s = Services.read(context);
+    if (s != _services) {
+      _services?.boardsChanged.removeListener(_reload);
+      _services = s..boardsChanged.addListener(_reload);
+    }
+  }
+
+  @override
+  void dispose() {
+    _services?.boardsChanged.removeListener(_reload);
+    super.dispose();
+  }
+
+  Future<void> _settings([SettingsSection section = SettingsSection.updates]) async {
+    await Navigator.of(context).push(SettingsScreen.route(section));
+    await _reload();
   }
 
   Future<void> _reload() async {
@@ -43,6 +68,7 @@ class _HomeScreenState extends State<HomeScreen> {
     }
     await store.setLastOpened(null);
     await _reload();
+    _services?.scheduleSync();
   }
 
   Future<void> _create() async {
@@ -86,6 +112,7 @@ class _HomeScreenState extends State<HomeScreen> {
     if (!ok) return;
     await store.moveToTrash(b.id);
     await _reload();
+    _services?.scheduleSync();
   }
 
   @override
@@ -95,6 +122,7 @@ class _HomeScreenState extends State<HomeScreen> {
       bindings: {
         const SingleActivator(LogicalKeyboardKey.keyN, control: true): _create,
         const SingleActivator(LogicalKeyboardKey.keyO, control: true): _import,
+        const SingleActivator(LogicalKeyboardKey.comma, control: true): _settings,
       },
       child: Focus(
         autofocus: true,
@@ -102,8 +130,9 @@ class _HomeScreenState extends State<HomeScreen> {
           body: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              _Header(onNew: _create, onImport: _import),
+              _Header(onNew: _create, onImport: _import, onSettings: _settings),
               const Divider(),
+              UpdateBanner(onDetails: () => _settings(SettingsSection.updates)),
               Expanded(
                 child: boards == null
                     ? const SizedBox.shrink()
@@ -118,7 +147,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         onDelete: _delete,
                       ),
               ),
-              _Footer(path: store.root.path),
+              _Footer(path: store.root.path, onCloud: () => _settings(SettingsSection.storage)),
             ],
           ),
         ),
@@ -128,10 +157,11 @@ class _HomeScreenState extends State<HomeScreen> {
 }
 
 class _Header extends StatelessWidget {
-  const _Header({required this.onNew, required this.onImport});
+  const _Header({required this.onNew, required this.onImport, required this.onSettings});
 
   final VoidCallback onNew;
   final VoidCallback onImport;
+  final VoidCallback onSettings;
 
   @override
   Widget build(BuildContext context) {
@@ -143,6 +173,12 @@ class _Header extends StatelessWidget {
           const SizedBox(width: 12),
           const Text('Local Board', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600, letterSpacing: -0.3)),
           const Spacer(),
+          IconButton(
+            tooltip: 'Settings (Ctrl+,)',
+            icon: const Icon(Icons.settings_outlined, size: 20),
+            onPressed: onSettings,
+          ),
+          const SizedBox(width: 8),
           PillButton(label: 'Open file…', icon: Icons.file_open_outlined, onPressed: onImport, tooltip: 'Ctrl+O'),
           const SizedBox(width: 8),
           PillButton(label: 'New board', icon: Icons.add, onPressed: onNew, filled: true, tooltip: 'Ctrl+N'),
@@ -314,26 +350,115 @@ class _BoardCardState extends State<_BoardCard> {
 }
 
 class _Footer extends StatelessWidget {
-  const _Footer({required this.path});
+  const _Footer({required this.path, required this.onCloud});
 
   final String path;
+  final VoidCallback onCloud;
 
   @override
   Widget build(BuildContext context) {
+    final s = Services.of(context);
+    final storages = s.activeStorages;
+    final where = storages.isEmpty
+        ? 'Stored only on this computer'
+        : 'Stored on this computer, synced to ${storages.map((e) => e.provider.label).join(', ')}';
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 10),
       decoration: const BoxDecoration(border: Border(top: BorderSide(color: Color(0x3817181A)))),
       child: Row(
         children: [
-          const Icon(Icons.lock_outline, size: 14, color: Color(Palette.inkSecondary)),
+          Icon(
+            storages.isEmpty ? Icons.lock_outline : Icons.cloud_done_outlined,
+            size: 14,
+            color: const Color(Palette.inkSecondary),
+          ),
           const SizedBox(width: 6),
           Expanded(
             child: SelectableText(
-              'Stored only on this computer · $path',
+              '$where · $path',
               style: const TextStyle(fontSize: 12, color: Color(Palette.inkSecondary)),
             ),
           ),
-          const Text('v0.1 · Linux', style: TextStyle(fontSize: 12, color: Color(Palette.inkTertiary))),
+          if (s.syncing)
+            const Padding(
+              padding: EdgeInsets.only(right: 10),
+              child: Text('Syncing…', style: TextStyle(fontSize: 12, color: Color(Palette.inkSecondary))),
+            ),
+          if (storages.isEmpty)
+            TextButton(
+              onPressed: onCloud,
+              style: TextButton.styleFrom(visualDensity: VisualDensity.compact, textStyle: const TextStyle(fontSize: 12)),
+              child: const Text('Add cloud storage'),
+            ),
+          const SizedBox(width: 8),
+          Text(
+            'v$appVersion · $platformName',
+            style: const TextStyle(fontSize: 12, color: Color(Palette.inkTertiary)),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// "A new version is available", shown until installed or skipped.
+class UpdateBanner extends StatelessWidget {
+  const UpdateBanner({super.key, required this.onDetails});
+
+  final VoidCallback onDetails;
+
+  @override
+  Widget build(BuildContext context) {
+    final s = Services.of(context);
+    final release = s.availableUpdate;
+    if (!s.showUpdateBanner || release == null) return const SizedBox.shrink();
+    final installing = s.updateState == UpdateState.installing;
+    final automatic = s.updater?.kind.automatic ?? false;
+    return Container(
+      margin: const EdgeInsets.fromLTRB(32, 16, 32, 0),
+      padding: const EdgeInsets.fromLTRB(16, 10, 10, 10),
+      decoration: BoxDecoration(
+        color: const Color(0x0F4F46E5),
+        border: Border.all(color: const Color(Palette.accent)),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.new_releases_outlined, color: Color(Palette.accent), size: 20),
+          const SizedBox(width: 12),
+          Expanded(
+            child: installing
+                ? Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Installing Local Board ${release.version}…', style: const TextStyle(fontWeight: FontWeight.w600)),
+                      const SizedBox(height: 6),
+                      LinearProgressIndicator(value: s.updateProgress, minHeight: 3, borderRadius: BorderRadius.circular(3)),
+                    ],
+                  )
+                : Text.rich(
+                    TextSpan(
+                      children: [
+                        TextSpan(
+                          text: 'Local Board ${release.version} is available. ',
+                          style: const TextStyle(fontWeight: FontWeight.w600),
+                        ),
+                        TextSpan(
+                          text: automatic
+                              ? 'Update now and the app restarts with your boards as they are.'
+                              : 'See what is new and how to get it.',
+                          style: const TextStyle(color: Color(Palette.inkSecondary)),
+                        ),
+                      ],
+                    ),
+                  ),
+          ),
+          if (!installing) ...[
+            TextButton(onPressed: onDetails, child: const Text('What’s new')),
+            TextButton(onPressed: s.skipUpdate, child: const Text('Later')),
+            const SizedBox(width: 4),
+            if (automatic) PillButton(label: 'Update', icon: Icons.download, filled: true, onPressed: s.installUpdate),
+          ],
         ],
       ),
     );

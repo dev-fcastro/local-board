@@ -10,7 +10,8 @@ enum Tool {
   rectangle('Rectangle', 'R', LogicalKeyboardKey.keyR),
   ellipse('Ellipse', 'O', LogicalKeyboardKey.keyO),
   text('Text', 'T', LogicalKeyboardKey.keyT),
-  sticky('Sticky note', 'N', LogicalKeyboardKey.keyN);
+  sticky('Sticky note', 'N', LogicalKeyboardKey.keyN),
+  component('Component', 'C', LogicalKeyboardKey.keyC);
 
   const Tool(this.label, this.shortcutLabel, this.key);
 

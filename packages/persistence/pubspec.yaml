@@ -9,6 +9,7 @@ environment:
 resolution: workspace
 
 dependencies:
+  crypto: ^3.0.0
   local_board_core: any
   path: ^1.9.0
 

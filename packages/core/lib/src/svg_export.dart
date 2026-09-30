@@ -3,6 +3,8 @@ import 'dart:math' as math;
 import 'document.dart';
 import 'geometry.dart';
 import 'objects.dart';
+import 'plugins/component_layout.dart';
+import 'plugins/plugin.dart';
 
 /// Visual constants shared by the Flutter renderer and the SVG exporter so a
 /// board looks the same in the app and outside it.
@@ -133,9 +135,80 @@ String exportSvg(BoardDocument doc, {double padding = 32, bool background = true
           }
           out.writeln('</text>');
         }
+      case ComponentObject c:
+        _component(out, c, paint, f);
     }
   }
   out.writeln('</svg>');
+  return out.toString();
+}
+
+void _component(StringBuffer out, ComponentObject c, String Function(String, int) paint, String Function(double) f) {
+  final b = c.bounds;
+  final layout = ComponentLayout.of(c);
+  const font = 'font-family="${BoardStyle.fontFamily}, system-ui, sans-serif"';
+  const fs = ComponentStyle.labelFontSize;
+  final rect = 'x="${f(b.left)}" y="${f(b.top)}" width="${f(b.width)}" height="${f(b.height)}"';
+  final width = 'stroke-width="${f(ComponentStyle.borderWidth)}"';
+  if (c.isZone) {
+    out.writeln(
+      '<rect $rect rx="${f(ComponentStyle.zoneRadius)}" ${paint('fill', ComponentStyle.zoneFill(c.color))} '
+      '${paint('stroke', c.color)} $width '
+      'stroke-dasharray="${f(ComponentStyle.zoneDash)} ${f(ComponentStyle.zoneGap)}"/>',
+    );
+  } else {
+    out.writeln(
+      '<rect $rect rx="${f(ComponentStyle.cardRadius)}" ${paint('fill', ComponentStyle.cardFill)} '
+      '${paint('stroke', ComponentStyle.border(c.color))} $width/>',
+    );
+  }
+  out.writeln(componentIconSvg(c.icon, layout.icon, c.color));
+  if (c.label.isEmpty) return;
+  final l = layout.label;
+  if (c.isZone) {
+    final chars = math.max(1, (l.width / (fs * 0.55)).floor());
+    final text = c.label.length > chars ? '${c.label.substring(0, math.max(0, chars - 1))}…' : c.label;
+    out.writeln(
+      '<text $font font-size="${f(fs)}" font-weight="600" ${paint('fill', c.color)} '
+      'x="${f(l.left)}" y="${f(l.center.y + fs * 0.35)}">${_escape(text)}</text>',
+    );
+    return;
+  }
+  final lh = fs * BoardStyle.lineHeight;
+  var lines = _wrap(c.label, maxChars: math.max(4, (l.width / (fs * 0.55)).floor()));
+  if (lines.length > ComponentStyle.labelLines) {
+    lines = [...lines.take(ComponentStyle.labelLines - 1), '${lines[ComponentStyle.labelLines - 1]}…'];
+  }
+  final top = l.center.y - lines.length * lh / 2;
+  out.write('<text $font font-size="${f(fs)}" font-weight="500" ${paint('fill', ComponentStyle.labelColor)} text-anchor="middle">');
+  for (var i = 0; i < lines.length; i++) {
+    out.write('<tspan x="${f(l.center.x)}" y="${f(top + lh * i + fs)}">${_escape(lines[i])}</tspan>');
+  }
+  out.writeln('</text>');
+}
+
+/// A component icon as an SVG group scaled from its 24×24 grid into [box].
+String componentIconSvg(ComponentIcon icon, Bounds box, int color) {
+  String f(double v) => v.toStringAsFixed(2);
+  final rgb = '#${(color & 0xFFFFFF).toRadixString(16).padLeft(6, '0')}';
+  final s = box.width / ComponentIcon.grid;
+  final out = StringBuffer(
+    '<g transform="translate(${f(box.left)} ${f(box.top)}) scale(${s.toStringAsFixed(4)})" fill="none" '
+    'stroke="$rgb" stroke-width="${ComponentIcon.strokeWidth}" stroke-linecap="round" stroke-linejoin="round">',
+  );
+  for (final part in icon.parts) {
+    final look = part.filled ? ' fill="$rgb" stroke="none"' : '';
+    out.write(switch (part) {
+      IconLine l => '<line x1="${f(l.x1)}" y1="${f(l.y1)}" x2="${f(l.x2)}" y2="${f(l.y2)}"$look/>',
+      IconRect r => '<rect x="${f(r.x)}" y="${f(r.y)}" width="${f(r.width)}" height="${f(r.height)}" rx="${f(r.radius)}"$look/>',
+      IconCircle c => '<circle cx="${f(c.cx)}" cy="${f(c.cy)}" r="${f(c.r)}"$look/>',
+      IconEllipse e => '<ellipse cx="${f(e.cx)}" cy="${f(e.cy)}" rx="${f(e.rx)}" ry="${f(e.ry)}"$look/>',
+      IconPolyline p =>
+        '<${p.closed ? 'polygon' : 'polyline'} points="${[for (var i = 0; i + 1 < p.points.length; i += 2) '${f(p.points[i])},${f(p.points[i + 1])}'].join(' ')}"$look/>',
+      IconPath p => '<path d="${p.data}"$look/>',
+    });
+  }
+  out.write('</g>');
   return out.toString();
 }
 

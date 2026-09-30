@@ -174,6 +174,27 @@ final class BoardStore {
     }
   }
 
+  /// Boards that are in the trash and not on the board list, with when they
+  /// were moved there (sync uses this to delete them elsewhere too).
+  Future<Map<String, DateTime>> trashed() async {
+    final out = <String, DateTime>{};
+    if (!await trashDir.exists()) return out;
+    await for (final e in trashDir.list()) {
+      final m = RegExp(r'^([0-9a-zA-Z_-]+)-(\d+)\.whiteboard$').firstMatch(p.basename(e.path));
+      if (m == null) continue;
+      final at = DateTime.fromMillisecondsSinceEpoch(int.parse(m.group(2)!), isUtc: true);
+      final prev = out[m.group(1)!];
+      if (prev == null || at.isAfter(prev)) out[m.group(1)!] = at;
+    }
+    for (final id in out.keys.toList()) {
+      if (await fileFor(id).exists()) out.remove(id);
+    }
+    return out;
+  }
+
+  /// The board as the bytes of a `.whiteboard` file.
+  Future<List<int>> encode(BoardDocument doc) async => utf8.encode(const JsonEncoder.withIndent(' ').convert(doc.toJson()));
+
   Future<BoardDocument> duplicate(String id) async {
     final source = (await open(id)).document;
     final json = source.toJson()

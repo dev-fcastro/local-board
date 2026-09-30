@@ -5,6 +5,8 @@ import 'package:flutter/material.dart';
 import 'package:local_board_persistence/local_board_persistence.dart';
 
 import 'src/app.dart';
+import 'src/services.dart';
+import 'src/updater.dart';
 
 Future<void> main(List<String> args) async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -23,5 +25,7 @@ Future<void> main(List<String> args) async {
     }
   }
 
-  runApp(LocalBoardApp(store: store, openBoardId: openId));
+  final services = await AppServices.load(store, updater: Updater(currentVersion: appVersion));
+  runApp(LocalBoardApp(store: store, services: services, openBoardId: openId));
+  WidgetsBinding.instance.addPostFrameCallback((_) => services.start());
 }

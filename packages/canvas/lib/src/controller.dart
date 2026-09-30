@@ -20,7 +20,12 @@ final class TextEditSession {
     this.fontSize = 24,
     this.sticky = false,
     this.stickySize = StickyNote.defaultSize,
+    this.label,
   });
+
+  /// Set when renaming a component: the box its label is edited in.
+  final Bounds? label;
+  bool get isLabel => label != null;
 
   final String? objectId;
   final Vec2 position;
@@ -67,6 +72,11 @@ class BoardController extends ChangeNotifier {
 
   int get stickyColor => _stickyColor;
   int _stickyColor = Palette.stickies.first;
+
+  /// Component the component tool places, chosen in the library.
+  ComponentKind? get armedKind => _armedKind;
+  ComponentKind? _armedKind;
+  BoardPlugin? _armedPlugin;
 
   bool get spaceHeld => _spaceHeld;
   bool _spaceHeld = false;
@@ -119,9 +129,53 @@ class BoardController extends ChangeNotifier {
 
   void setTool(Tool t) {
     if (editing != null) return;
+    if (t == Tool.component && _armedKind == null) {
+      // Shortcut with nothing chosen yet: start with the first component.
+      final plugin = builtInPlugins.first;
+      _armedPlugin = plugin;
+      _armedKind = plugin.kinds.first;
+    }
     _tool = t;
     if (t != Tool.select) selection.clear();
+    if (t != Tool.component) draft = null;
     _emit();
+  }
+
+  /// Picks a component from the library; the next click on the board places it.
+  void armComponent(BoardPlugin plugin, ComponentKind kind) {
+    _armedPlugin = plugin;
+    _armedKind = kind;
+    setTool(Tool.component);
+  }
+
+  ComponentObject? _componentAt(Vec2 center, {String id = 'draft'}) {
+    final plugin = _armedPlugin, kind = _armedKind;
+    if (plugin == null || kind == null) return null;
+    final size = kind.defaultSize;
+    return ComponentObject(
+      id: id,
+      plugin: plugin.id,
+      kind: kind.id,
+      position: kind.body == ComponentBody.zone ? center - Vec2(size.x / 2, ComponentObject.zoneHeader / 2) : center - size * 0.5,
+      size: size,
+      label: kind.label,
+      color: plugin.color,
+    );
+  }
+
+  /// Places the armed component, then lets the user name it right away.
+  /// Zones go to the back so they frame what is already on the board.
+  void _placeComponent(Vec2 at) {
+    final c = _componentAt(at, id: newId());
+    if (c == null) return;
+    history.execute(
+      c.isZone
+          ? CompositeCommand([AddObjects([c]), ReorderObjects([c.id], ZMove.toBack)], label: 'Add ${c.definition?.label ?? 'component'}')
+          : AddObjects([c], label: 'Add ${c.definition?.label ?? 'component'}'),
+    );
+    draft = null;
+    _tool = Tool.select;
+    beginEditObject(c);
   }
 
   /// Sets the ink color and recolors selected non-sticky objects.
@@ -131,6 +185,7 @@ class BoardController extends ChangeNotifier {
       StrokeObject s => StrokeObject(id: s.id, points: s.points, color: c, width: s.width),
       ShapeObject s => s.copyWith(strokeColor: c),
       TextObject t => t.copyWith(color: c),
+      ComponentObject o => o.copyWith(color: c),
       StickyNote() => null,
     }, 'Color');
   }
@@ -233,7 +288,7 @@ class BoardController extends ChangeNotifier {
           marquee = Bounds.fromPoints(w, w);
           break;
         }
-        if (isDouble && (hit is TextObject || hit is StickyNote)) {
+        if (isDouble && (hit is TextObject || hit is StickyNote || hit is ComponentObject)) {
           beginEditObject(hit);
           return;
         }
@@ -275,6 +330,9 @@ class BoardController extends ChangeNotifier {
             color: _color,
           );
         }
+      case Tool.component:
+        _placeComponent(w);
+        return;
       case Tool.sticky:
         editing = TextEditSession(
           position: w - StickyNote.defaultSize * 0.5,
@@ -331,6 +389,19 @@ class BoardController extends ChangeNotifier {
 
   void pointerHover(Offset screen) {
     hoverScreen = screen;
+    if (_tool == Tool.component && editing == null) {
+      draft = _componentAt(toWorld(screen));
+      _emit();
+    }
+  }
+
+  /// The pointer left the board: hide the placement ghost.
+  void pointerExit() {
+    hoverScreen = null;
+    if (_tool == Tool.component && draft != null) {
+      draft = null;
+      _emit();
+    }
   }
 
   void pointerUp() {
@@ -498,6 +569,10 @@ class BoardController extends ChangeNotifier {
         sticky: true,
         stickySize: n.size,
       ),
+      ComponentObject c => () {
+        final box = ComponentLayout.of(c).label;
+        return TextEditSession(objectId: c.id, position: box.topLeft, initialText: c.label, color: c.color, label: box);
+      }(),
       _ => null,
     };
     _emit();
@@ -510,7 +585,12 @@ class BoardController extends ChangeNotifier {
     final existing = s.objectId == null ? null : document[s.objectId!];
     final blank = text.trim().isEmpty;
 
-    if (s.sticky) {
+    if (s.isLabel) {
+      final label = text.trim();
+      if (existing is ComponentObject && existing.label != label) {
+        history.execute(UpdateObjects(before: [existing], after: [existing.copyWith(label: label)], label: 'Rename'));
+      }
+    } else if (s.sticky) {
       if (existing is StickyNote) {
         if (existing.text != text) {
           history.execute(UpdateObjects(before: [existing], after: [existing.copyWith(text: text)], label: 'Edit note'));
@@ -764,7 +844,7 @@ class BoardController extends ChangeNotifier {
         return true;
       case LogicalKeyboardKey.enter:
         final objs = selectedObjects;
-        if (objs.length == 1 && (objs.first is TextObject || objs.first is StickyNote)) {
+        if (objs.length == 1 && (objs.first is TextObject || objs.first is StickyNote || objs.first is ComponentObject)) {
           beginEditObject(objs.first);
           return true;
         }

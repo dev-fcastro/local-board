@@ -307,4 +307,63 @@ void main() {
     final bytes = await exportPng(c.document, pixelRatio: 1);
     expect(bytes.sublist(0, 8), Uint8List.fromList([0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A]));
   });
+
+  group('plugin components', () {
+    test('armed component follows the cursor, a click places it and opens its name', () {
+      final c = newController();
+      final kind = softwareArchitecturePlugin.kind('database')!;
+      c.armComponent(softwareArchitecturePlugin, kind);
+      expect(c.tool, Tool.component);
+      c.pointerHover(const Offset(300, 200));
+      expect(c.draft, isA<ComponentObject>());
+      c.pointerDown(const Offset(300, 200));
+      c.pointerUp();
+      expect(c.document.length, 1);
+      final placed = c.document.objects.first as ComponentObject;
+      expect(placed.kind, 'database');
+      expect(placed.label, 'Database');
+      expect(placed.bounds.center, c.toWorld(const Offset(300, 200)));
+      expect(c.tool, Tool.select);
+      expect(c.editing?.isLabel, isTrue);
+      c.commitEdit('  Orders DB ');
+      expect((c.document.objects.first as ComponentObject).label, 'Orders DB');
+      c.undo();
+      expect((c.document.objects.first as ComponentObject).label, 'Database');
+      c.undo();
+      expect(c.document.isEmpty, isTrue);
+    });
+
+    test('zones go behind what is already on the board', () {
+      final c = newController()..setTool(Tool.sticky);
+      c.pointerDown(const Offset(100, 100));
+      c.commitEdit('note');
+      c.armComponent(networkArchitecturePlugin, networkArchitecturePlugin.kind('network-zone')!);
+      c.pointerDown(const Offset(200, 200));
+      c.pointerUp();
+      c.commitEdit('DMZ');
+      expect(c.document.objects.first, isA<ComponentObject>());
+      expect(c.document.objects.last, isA<StickyNote>());
+    });
+
+    test('color changes recolor selected components', () {
+      final c = newController();
+      c.armComponent(softwareArchitecturePlugin, softwareArchitecturePlugin.kinds.first);
+      c.pointerDown(const Offset(300, 200));
+      c.pointerUp();
+      c.commitEdit('User');
+      c.setColor(Palette.inks.last);
+      expect((c.document.objects.first as ComponentObject).color, Palette.inks.last);
+    });
+
+    testWidgets('components paint on the canvas', (tester) async {
+      final c = newController();
+      c.armComponent(networkArchitecturePlugin, networkArchitecturePlugin.kind('router')!);
+      c.pointerDown(const Offset(300, 200));
+      c.pointerUp();
+      c.commitEdit('Edge router');
+      await tester.pumpWidget(MaterialApp(home: Scaffold(body: BoardCanvas(controller: c))));
+      await tester.pump();
+      expect(tester.takeException(), isNull);
+    });
+  });
 }

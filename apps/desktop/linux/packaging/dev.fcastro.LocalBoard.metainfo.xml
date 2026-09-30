@@ -16,6 +16,11 @@
   <launchable type="desktop-id">dev.fcastro.LocalBoard.desktop</launchable>
   <content_rating type="oars-1.1"/>
   <releases>
+    <release version="0.2.0" date="2026-09-30">
+      <description>
+        <p>Architecture plugins, cloud storage sync and in-app updates.</p>
+      </description>
+    </release>
     <release version="0.1.0" date="2026-09-28"/>
   </releases>
 </component>

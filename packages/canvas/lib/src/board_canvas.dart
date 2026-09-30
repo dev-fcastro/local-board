@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:local_board_core/local_board_core.dart';
 
 import 'controller.dart';
+import 'component_painter.dart';
 import 'painter.dart';
 import 'palette.dart';
 import 'text_layout.dart';
@@ -71,6 +72,7 @@ class _BoardCanvasState extends State<BoardCanvas> {
       Tool.select => _hoverCursor(),
       Tool.text => SystemMouseCursors.text,
       Tool.eraser => SystemMouseCursors.disappearing,
+      Tool.component => SystemMouseCursors.copy,
       _ => SystemMouseCursors.precise,
     };
   }
@@ -113,6 +115,7 @@ class _BoardCanvasState extends State<BoardCanvas> {
           onKeyEvent: (_, e) => c.handleKey(e) ? KeyEventResult.handled : KeyEventResult.ignored,
           child: MouseRegion(
             cursor: _cursor,
+            onExit: (_) => c.pointerExit(),
             onHover: (e) {
               c.pointerHover(e.localPosition);
               if (c.tool == Tool.select) setState(() {}); // cursor over handles
@@ -148,7 +151,8 @@ class _BoardCanvasState extends State<BoardCanvas> {
                             viewport: c.camera,
                             preview: c.preview,
                             erasing: c.erasing,
-                            hidden: c.editing?.objectId,
+                            hidden: c.editing?.isLabel == true ? null : c.editing?.objectId,
+                            blankLabel: c.editing?.isLabel == true ? c.editing?.objectId : null,
                             draft: c.draft,
                             selection: c.selection,
                             selectionBounds: c.tool == Tool.select && !c.isInteracting ? c.selectionBounds : null,
@@ -215,7 +219,22 @@ class _TextEditorOverlayState extends State<_TextEditorOverlay> {
     final origin = c.toScreen(s.position);
 
     final Widget editor;
-    if (s.sticky) {
+    final label = s.label;
+    if (label != null) {
+      final component = s.objectId == null ? null : c.document[s.objectId!];
+      final zone = component is ComponentObject && component.isZone;
+      final style = component is ComponentObject
+          ? componentLabelStyle(component)
+          : boardTextStyle(ComponentStyle.labelFontSize, ComponentStyle.labelColor);
+      editor = SizedBox(
+        width: label.width,
+        height: label.height,
+        child: Align(
+          alignment: zone ? Alignment.centerLeft : Alignment.center,
+          child: _field(style, align: zone ? TextAlign.left : TextAlign.center, singleLine: true),
+        ),
+      );
+    } else if (s.sticky) {
       editor = Container(
         width: s.stickySize.x,
         height: s.stickySize.y,
@@ -247,7 +266,7 @@ class _TextEditorOverlayState extends State<_TextEditorOverlay> {
     );
   }
 
-  Widget _field(TextStyle style, {bool expands = false}) {
+  Widget _field(TextStyle style, {bool expands = false, TextAlign align = TextAlign.start, bool singleLine = false}) {
     return CallbackShortcuts(
       bindings: {
         const SingleActivator(LogicalKeyboardKey.escape): () {
@@ -261,10 +280,12 @@ class _TextEditorOverlayState extends State<_TextEditorOverlay> {
         focusNode: _focus,
         style: style,
         cursorColor: const Color(Palette.accent),
-        maxLines: null,
+        maxLines: singleLine ? 1 : null,
         expands: expands,
-        keyboardType: TextInputType.multiline,
-        decoration: const InputDecoration.collapsed(hintText: 'Type…'),
+        textAlign: align,
+        keyboardType: singleLine ? TextInputType.text : TextInputType.multiline,
+        onSubmitted: singleLine ? (_) => _commit() : null,
+        decoration: InputDecoration.collapsed(hintText: singleLine ? 'Name' : 'Type…'),
       ),
     );
   }

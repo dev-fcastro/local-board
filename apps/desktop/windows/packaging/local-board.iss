@@ -67,3 +67,5 @@ Root: HKA; Subkey: "Software\Classes\Applications\{#AppExe}\SupportedTypes"; Val
 
 [Run]
 Filename: "{app}\{#AppExe}"; Description: "{cm:LaunchProgram,{#AppName}}"; Flags: nowait postinstall skipifsilent
+; In-app updates run this setup silently: start the new version when done.
+Filename: "{app}\{#AppExe}"; Flags: nowait runasoriginaluser; Check: WizardSilent

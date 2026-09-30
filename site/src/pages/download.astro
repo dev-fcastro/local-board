@@ -19,7 +19,8 @@ const steps = [
   description="Download Local Board for Windows and Linux. The macOS version is not available yet. No account, no sign-in, no internet needed once installed."
 >
   <PageHero
-    eyebrow={`Download · ${release.version} · ${release.name} · Windows & Linux`}
+    eyebrow={`Download · ${release.version} · Windows & Linux`}
+    version={release.version}
     lines={["Take your board", "offline."]}
     description="Ready for Windows and Linux. Local Board runs on your computer and saves every board there. No account, no sign-in, no internet needed once it's installed."
   >
@@ -73,13 +74,13 @@ const steps = [
 
   <section class="scope -w" aria-labelledby="scope-title">
     <div class="scope-intro">
-      <p class="-p scope-eyebrow" data-reveal>First release</p>
+      <p class="-p scope-eyebrow" data-reveal>Latest release</p>
       <h2 class="-t4" id="scope-title" data-rise>
         <span><span>What's in</span></span>
-        <span><span>{release.version}.</span></span>
+        <span><span data-release-version={release.version}>{release.version}.</span></span>
       </h2>
       <p class="-p1 scope-text" data-reveal>
-        Focused on the essentials: draw, organise your ideas and never lose your work.
+        Draw, map your systems and never lose your work. Every update adds to this list.
       </p>
     </div>
     <ol class="scope-list">

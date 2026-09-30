@@ -1,11 +1,16 @@
 /// Schema version written by this build.
-const currentSchemaVersion = 1;
+const currentSchemaVersion = 2;
 
 typedef Migration = Map<String, Object?> Function(Map<String, Object?> json);
 
 /// `migrations[n]` upgrades a schema-n document to schema n+1.
 /// Add an entry here — never edit an old one — when the format changes (plan §7).
-final Map<int, Migration> migrations = {};
+final Map<int, Migration> migrations = {
+  // 2 adds plugin components ("type": "component"). Nothing to rewrite: the
+  // bump only makes older apps refuse these boards instead of failing on an
+  // object type they do not know.
+  1: (json) => json,
+};
 
 class UnsupportedSchemaException extends FormatException {
   const UnsupportedSchemaException(super.message);

@@ -1,6 +1,8 @@
 import 'dart:math' as math;
 
 import 'geometry.dart';
+import 'plugins/plugin.dart';
+import 'plugins/registry.dart';
 
 /// Colors are 32-bit ARGB ints in memory and `#rrggbbaa` strings on disk,
 /// so files stay readable and portable outside of Flutter.
@@ -50,6 +52,7 @@ sealed class BoardObject {
       ShapeObject.typeName => ShapeObject.fromJson(json),
       TextObject.typeName => TextObject.fromJson(json),
       StickyNote.typeName => StickyNote.fromJson(json),
+      ComponentObject.typeName => ComponentObject.fromJson(json),
       _ => throw FormatException('Unknown object type: $type'),
     };
   }
@@ -403,4 +406,112 @@ final class StickyNote extends BoardObject {
     text: json['text'] is String ? json['text'] as String : '',
     color: colorFromJson(json['color']),
   );
+}
+
+/// A component from a plugin (a service, a router, a subnet…). The board only
+/// stores which plugin and kind it is; the icon comes from the plugin, so a
+/// board stays small and a missing plugin never loses data.
+final class ComponentObject extends BoardObject {
+  const ComponentObject({
+    required this.id,
+    required this.plugin,
+    required this.kind,
+    required this.position,
+    required this.size,
+    required this.label,
+    required this.color,
+  });
+
+  static const typeName = 'component';
+
+  /// Height of a zone's label strip, which is also where it can be grabbed.
+  static const zoneHeader = 36.0;
+
+  @override
+  final String id;
+  final String plugin;
+  final String kind;
+  final Vec2 position;
+  final Vec2 size;
+  final String label;
+  final int color;
+
+  /// The plugin's definition, or null when this build does not know it.
+  ComponentKind? get definition => findComponentKind(plugin, kind);
+
+  /// Falls back to a placeholder so boards from newer plugins still render.
+  ComponentIcon get icon => definition?.icon ?? unknownComponentIcon;
+
+  ComponentBody get body => definition?.body ?? ComponentBody.card;
+  bool get isZone => body == ComponentBody.zone;
+
+  double get minSize => isZone ? 80 : 40;
+
+  @override
+  String get type => typeName;
+
+  @override
+  Bounds get bounds => Bounds(position.x, position.y, position.x + size.x, position.y + size.y);
+
+  @override
+  ComponentObject translate(Vec2 d) => copyWith(position: position + d);
+
+  @override
+  ComponentObject resize(Bounds from, Bounds to) {
+    final box = Bounds.fromPoints(mapPoint(position, from, to), mapPoint(position + size, from, to));
+    return copyWith(position: box.topLeft, size: Vec2(math.max(minSize, box.width), math.max(minSize, box.height)));
+  }
+
+  /// Cards are solid. Zones only react on their border and label strip, so
+  /// clicking inside one still selects what it contains or starts a marquee.
+  @override
+  bool hitTest(Vec2 p, double tolerance) {
+    final b = bounds;
+    if (!b.inflate(tolerance).contains(p)) return false;
+    if (!isZone) return true;
+    if (p.y <= b.top + zoneHeader) return true;
+    final edge = tolerance + 6;
+    return p.x - b.left <= edge || b.right - p.x <= edge || b.bottom - p.y <= edge;
+  }
+
+  ComponentObject copyWith({String? id, Vec2? position, Vec2? size, String? label, int? color}) => ComponentObject(
+    id: id ?? this.id,
+    plugin: plugin,
+    kind: kind,
+    position: position ?? this.position,
+    size: size ?? this.size,
+    label: label ?? this.label,
+    color: color ?? this.color,
+  );
+
+  @override
+  ComponentObject withId(String id) => copyWith(id: id);
+
+  @override
+  Map<String, Object?> toJson() => {
+    'type': type,
+    'id': id,
+    'plugin': plugin,
+    'kind': kind,
+    'position': position.toJson(),
+    'size': size.toJson(),
+    'label': label,
+    'color': colorToJson(color),
+  };
+
+  factory ComponentObject.fromJson(Map<String, Object?> json) {
+    final plugin = json['plugin'], kind = json['kind'];
+    if (plugin is! String || plugin.isEmpty || kind is! String || kind.isEmpty) {
+      throw FormatException('Component without plugin/kind: ${json['id']}');
+    }
+    return ComponentObject(
+      id: _id(json),
+      plugin: plugin,
+      kind: kind,
+      position: Vec2.fromJson(json['position']),
+      size: Vec2.fromJson(json['size']),
+      label: json['label'] is String ? json['label'] as String : '',
+      color: colorFromJson(json['color']),
+    );
+  }
 }

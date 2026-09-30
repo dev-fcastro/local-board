@@ -66,9 +66,12 @@ class IconBtn extends StatelessWidget {
 }
 
 class SaveIndicator extends StatelessWidget {
-  const SaveIndicator({super.key, required this.status});
+  const SaveIndicator({super.key, required this.status, this.cloud = false});
 
   final SaveStatus status;
+
+  /// A cloud storage keeps a synced copy.
+  final bool cloud;
 
   @override
   Widget build(BuildContext context) {
@@ -78,7 +81,9 @@ class SaveIndicator extends StatelessWidget {
       SaveStatus.error => ('Not saved — retrying', const Color(0xFFDC2626)),
     };
     return Tooltip(
-      message: 'Saved on this computer only. No internet needed.',
+      message: cloud
+          ? 'Saved on this computer, with a synced copy in your cloud storage.'
+          : 'Saved on this computer only. No internet needed.',
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -89,7 +94,7 @@ class SaveIndicator extends StatelessWidget {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
             decoration: BoxDecoration(border: Border.all(color: _line), borderRadius: BorderRadius.circular(99)),
-            child: const Text('Offline', style: TextStyle(fontSize: 11, color: Color(Palette.inkSecondary))),
+            child: Text(cloud ? 'Synced' : 'Offline', style: const TextStyle(fontSize: 11, color: Color(Palette.inkSecondary))),
           ),
         ],
       ),
@@ -108,13 +113,18 @@ const _toolIcons = <Tool, IconData>{
   Tool.ellipse: Icons.circle_outlined,
   Tool.text: Icons.text_fields,
   Tool.sticky: Icons.sticky_note_2_outlined,
+  Tool.component: Icons.category_outlined,
 };
 
 /// Bottom tool dock, like the site mockup: "Select Pen Shape Text".
 class ToolDock extends StatelessWidget {
-  const ToolDock({super.key, required this.controller});
+  const ToolDock({super.key, required this.controller, this.libraryOpen = false, this.onLibrary});
 
   final BoardController controller;
+
+  /// Opens and closes the component library.
+  final VoidCallback? onLibrary;
+  final bool libraryOpen;
 
   @override
   Widget build(BuildContext context) {
@@ -137,6 +147,15 @@ class ToolDock extends StatelessWidget {
                 active: controller.tool == t,
                 onPressed: () => controller.setTool(t),
               ),
+          ],
+          if (onLibrary != null) ...[
+            const SizedBox(height: 24, child: VerticalDivider(width: 12)),
+            IconBtn(
+              icon: _toolIcons[Tool.component]!,
+              tooltip: 'Components  ${Tool.component.shortcutLabel}',
+              active: libraryOpen,
+              onPressed: onLibrary,
+            ),
           ],
         ],
       ),

@@ -9,6 +9,9 @@ import 'package:local_board_canvas/local_board_canvas.dart';
 import 'package:local_board_core/local_board_core.dart';
 import 'package:local_board_persistence/local_board_persistence.dart';
 
+import 'component_library.dart';
+import 'services.dart';
+import 'settings_screen.dart';
 import 'toolbar.dart';
 import 'widgets.dart';
 
@@ -33,10 +36,13 @@ class _EditorScreenState extends State<EditorScreen> with WidgetsBindingObserver
   late final Autosaver saver = Autosaver(
     document: c.document,
     save: widget.store.save,
-    onStatus: (_, _) {
+    onStatus: (status, _) {
+      if (status == SaveStatus.saved) _services?.scheduleSync();
       if (mounted) setState(() {});
     },
   );
+  AppServices? _services;
+  bool _library = false;
   final _canvasFocus = FocusNode(debugLabel: 'board');
   late final AppLifecycleListener _lifecycle;
 
@@ -66,6 +72,14 @@ class _EditorScreenState extends State<EditorScreen> with WidgetsBindingObserver
     }
   }
 
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _services ??= Services.read(context)
+      ..openBoards.add(c.document.id)
+      ..registerFlusher(saver.flush);
+  }
+
   void _onChange() {
     saver.markDirty();
     setState(() {});
@@ -73,6 +87,10 @@ class _EditorScreenState extends State<EditorScreen> with WidgetsBindingObserver
 
   @override
   void dispose() {
+    _services
+      ?..openBoards.remove(c.document.id)
+      ..unregisterFlusher(saver.flush)
+      ..scheduleSync();
     c.removeListener(_onChange);
     _lifecycle.dispose();
     unawaited(saver.dispose());
@@ -131,8 +149,23 @@ class _EditorScreenState extends State<EditorScreen> with WidgetsBindingObserver
     _canvasFocus.requestFocus();
   }
 
+  Future<void> _managePlugins() async {
+    await saver.flush();
+    if (!mounted) return;
+    await Navigator.of(context).push(SettingsScreen.route(SettingsSection.plugins));
+    _canvasFocus.requestFocus();
+  }
+
+  void _toggleLibrary() {
+    setState(() => _library = !(_library || c.tool == Tool.component));
+    if (!_library && c.tool == Tool.component) c.setTool(Tool.select);
+    _canvasFocus.requestFocus();
+  }
+
   @override
   Widget build(BuildContext context) {
+    final services = Services.of(context);
+    final showLibrary = _library || c.tool == Tool.component;
     return CallbackShortcuts(
       bindings: {
         const SingleActivator(LogicalKeyboardKey.keyS, control: true): () {
@@ -160,10 +193,33 @@ class _EditorScreenState extends State<EditorScreen> with WidgetsBindingObserver
                 canRedo: c.canRedo,
                 onUndo: c.undo,
                 onRedo: c.redo,
+                cloud: services.cloudEnabled,
+                update: services.showUpdateBanner ? services.availableUpdate?.version : null,
+                onUpdate: () => Navigator.of(context).push(SettingsScreen.route()),
               ),
             ),
-            Positioned(left: 0, right: 0, bottom: 16, child: Center(child: ToolDock(controller: c))),
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: 16,
+              child: Center(child: ToolDock(controller: c, libraryOpen: showLibrary, onLibrary: _toggleLibrary)),
+            ),
             Positioned(left: 12, top: 72, child: StylePanel(controller: c)),
+            if (showLibrary)
+              Positioned(
+                right: 12,
+                top: 72,
+                bottom: 72,
+                child: Align(
+                  alignment: Alignment.topRight,
+                  child: ComponentLibrary(
+                    controller: c,
+                    plugins: services.enabledPlugins,
+                    onClose: _toggleLibrary,
+                    onManage: _managePlugins,
+                  ),
+                ),
+              ),
             Positioned(right: 12, bottom: 16, child: ZoomControls(controller: c)),
             if (c.document.isEmpty && c.editing == null && !c.isInteracting)
               const Positioned.fill(child: IgnorePointer(child: _EmptyHint())),
@@ -185,6 +241,9 @@ class _TopBar extends StatelessWidget {
     required this.canRedo,
     required this.onUndo,
     required this.onRedo,
+    required this.cloud,
+    required this.onUpdate,
+    this.update,
   });
 
   final String title;
@@ -196,6 +255,11 @@ class _TopBar extends StatelessWidget {
   final bool canRedo;
   final VoidCallback onUndo;
   final VoidCallback onRedo;
+  final bool cloud;
+
+  /// Version of an available update, if any.
+  final String? update;
+  final VoidCallback onUpdate;
 
   @override
   Widget build(BuildContext context) {
@@ -228,12 +292,34 @@ class _TopBar extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 8),
-              SaveIndicator(status: status),
+              SaveIndicator(status: status, cloud: cloud),
               const SizedBox(width: 8),
             ],
           ),
         ),
         const Spacer(),
+        if (update != null) ...[
+          Panel(
+            child: InkWell(
+              onTap: onUpdate,
+              borderRadius: BorderRadius.circular(7),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                child: Row(
+                  children: [
+                    const Icon(Icons.new_releases_outlined, size: 18, color: Color(Palette.accent)),
+                    const SizedBox(width: 6),
+                    Text(
+                      'Update to $update',
+                      style: const TextStyle(fontWeight: FontWeight.w600, color: Color(Palette.accent)),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+        ],
         Panel(
           child: Row(
             mainAxisSize: MainAxisSize.min,
@@ -282,7 +368,10 @@ class _EmptyHint extends StatelessWidget {
         children: [
           Text('Pick a tool below and start drawing.', style: TextStyle(color: Color(Palette.inkSecondary), fontSize: 18)),
           SizedBox(height: 8),
-          Text('P pen · R rectangle · T text · N sticky note · Space+drag to move around · wheel to zoom', style: style),
+          Text(
+            'P pen · R rectangle · T text · N sticky note · C components · Space+drag to move around · wheel to zoom',
+            style: style,
+          ),
         ],
       ),
     );

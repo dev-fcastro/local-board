@@ -1,6 +1,7 @@
 name: Release
 
-# Push a tag like v0.1.0 (must match apps/desktop/pubspec.yaml) to build the
+# Push an annotated tag like v0.2.0 (must match apps/desktop/pubspec.yaml and
+# appVersion in app.dart; its message becomes "What's new") to build the
 # Linux and Windows packages and publish a GitHub release. The website's
 # download buttons point at releases/latest, so they go live as soon as this
 # finishes.
@@ -33,6 +34,8 @@ jobs:
           V=$(sed -n 's/^version: *\([0-9.]*\).*/\1/p' apps/desktop/pubspec.yaml)
           echo "pubspec version: $V, tag: $TAG"
           [ "v$V" = "$TAG" ] || { echo "::error::Tag $TAG does not match pubspec version $V"; exit 1; }
+          A=$(sed -n "s/^const appVersion = '\(.*\)';/\1/p" apps/desktop/lib/src/app.dart)
+          [ "$A" = "$V" ] || { echo "::error::appVersion in app.dart ($A) does not match pubspec ($V)"; exit 1; }
 
       - name: Linux build dependencies
         run: |
@@ -110,6 +113,10 @@ jobs:
     needs: [linux, windows]
     runs-on: ubuntu-24.04
     steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.TAG }}
+
       - uses: actions/download-artifact@v4
         with:
           path: dist
@@ -122,12 +129,17 @@ jobs:
       - name: Release notes
         run: |
           VERSION=${TAG#v}
-          cat > notes.md <<EOF
-          ## Local Board ${VERSION} — Windows & Linux
+          # The app shows the first lines of these notes in its update screen,
+          # so "What's new" goes first: it is the annotated tag's message.
+          git fetch --force origin "refs/tags/$TAG:refs/tags/$TAG"
+          git for-each-ref "refs/tags/$TAG" --format='%(contents)' | sed '/-----BEGIN PGP/,$d' > notes.md
+          echo >> notes.md
+          cat >> notes.md <<EOF
+          ## Download: Windows and Linux
 
           ### Windows (10 and 11, 64-bit)
-          - \`LocalBoard-${VERSION}-Setup-x64.exe\` — installer. Installs for your user, no administrator needed. Adds a Start menu entry and opens \`.whiteboard\` files.
-          - \`LocalBoard-${VERSION}-windows-x64.zip\` — portable: unzip and run \`LocalBoard.exe\`.
+          - \`LocalBoard-${VERSION}-Setup-x64.exe\`: installer. Installs for your user, no administrator needed. Adds a Start menu entry and opens \`.whiteboard\` files.
+          - \`LocalBoard-${VERSION}-windows-x64.zip\`: portable: unzip and run \`LocalBoard.exe\`.
 
           The installer isn't code-signed yet, so Windows SmartScreen may show "Windows protected your PC". Click **More info → Run anyway**.
 
@@ -138,8 +150,10 @@ jobs:
           \`\`\`
 
           **Or download**
-          - \`LocalBoard-${VERSION}-x86_64.AppImage\` — run directly: \`chmod +x LocalBoard-*.AppImage && ./LocalBoard-*.AppImage\`
-          - \`LocalBoard-${VERSION}-linux-x86_64.tar.gz\` — portable bundle
+          - \`LocalBoard-${VERSION}-x86_64.AppImage\`: run directly: \`chmod +x LocalBoard-*.AppImage && ./LocalBoard-*.AppImage\`
+          - \`LocalBoard-${VERSION}-linux-x86_64.tar.gz\`: portable bundle
+
+          Already installed? Local Board tells you when a new version is out and updates itself in one click.
 
           Checksums for every file are in \`SHA256SUMS\`. macOS is not available yet.
           EOF
@@ -154,5 +168,5 @@ jobs:
           if gh release view "$TAG" >/dev/null 2>&1; then
             gh release upload "$TAG" "${FILES[@]}" --clobber
           else
-            gh release create "$TAG" "${FILES[@]}" --title "Local Board ${VERSION} — Local Canvas" --notes-file notes.md --latest
+            gh release create "$TAG" "${FILES[@]}" --title "Local Board ${VERSION}" --notes-file notes.md --latest
           fi

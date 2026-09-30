@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:local_board/src/app.dart';
+import 'package:local_board/src/updater.dart';
 import 'package:local_board/src/widgets.dart';
 import 'package:local_board_core/local_board_core.dart';
 import 'package:local_board_persistence/local_board_persistence.dart';
@@ -95,6 +96,106 @@ void main() {
     // temp folder while a save still has a file open.
     await tester.pumpWidget(const SizedBox());
     await settleIo(tester);
+  });
+
+  testWidgets('place a plugin component, name it, and turn a plugin off', (tester) async {
+    final store = BoardStore(dir);
+    await pumpApp(tester, store);
+    await tester.tap(find.text('Create your first board'));
+    await settleIo(tester, until: find.text('Untitled board'));
+
+    // Open the library from the dock and place a database.
+    await tester.tap(find.byTooltip('Components  C'));
+    await tester.pump();
+    expect(find.text('Components'), findsOneWidget);
+    await tester.tap(find.text('Database'));
+    await tester.pump();
+    final g = await tester.startGesture(const Offset(500, 400), kind: PointerDeviceKind.mouse);
+    await g.up();
+    await tester.pump();
+    await tester.enterText(
+      find.byWidgetPredicate((w) => w is TextField && w.decoration?.hintText == 'Name'),
+      'Orders DB',
+    );
+    await tester.testTextInput.receiveAction(TextInputAction.done);
+    await tester.pump();
+
+    // Manage plugins: turn network architecture off, it leaves the library.
+    await tester.tap(find.byTooltip('Manage plugins'));
+    await settleIo(tester, until: find.text('Network architecture'));
+    await tester.tap(find.byType(Switch).last);
+    await tester.pump();
+    await tester.tap(find.byTooltip('Back (Esc)'));
+    await settleIo(tester, until: find.byTooltip('All boards (Ctrl+W)'));
+    expect(find.text('Network'), findsNothing);
+
+    await tester.tap(find.byTooltip('All boards (Ctrl+W)'));
+    await settleIo(tester, until: find.textContaining('1 item'));
+    final boards = (await tester.runAsync(store.list))!;
+    final doc = (await tester.runAsync(() => store.open(boards.single.id)))!.document;
+    final placed = doc.objects.single as ComponentObject;
+    expect((placed.plugin, placed.kind, placed.label), ('software-architecture', 'database', 'Orders DB'));
+    final settings = (await tester.runAsync(SettingsStore(dir).load))!;
+    expect(settings.isPluginEnabled('network-architecture'), isFalse);
+
+    await tester.pumpWidget(const SizedBox());
+    await settleIo(tester);
+  });
+
+  testWidgets('settings: add a synced folder storage', (tester) async {
+    final store = BoardStore(dir);
+    await pumpApp(tester, store);
+    await tester.tap(find.byTooltip('Settings (Ctrl+,)'));
+    await settleIo(tester, until: find.text('Check for updates automatically'));
+    await tester.tap(find.text('Cloud storage'));
+    await tester.pump();
+    await tester.tap(find.text('Add storage'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Any synced folder'));
+    await tester.pumpAndSettle();
+    final folder = Directory('${dir.path}/Sync')..createSync();
+    await tester.enterText(find.widgetWithText(TextField, 'Folder'), folder.path);
+    await tester.tap(find.text('Save'));
+    await settleIo(tester, until: find.textContaining('Synced'));
+    expect(find.text('Any synced folder'), findsOneWidget);
+    final settings = (await tester.runAsync(SettingsStore(dir).load))!;
+    expect(settings.storages.single.folder, folder.path);
+
+    await tester.pumpWidget(const SizedBox());
+    await settleIo(tester);
+  });
+
+  group('updates', () {
+    test('versions compare numerically', () {
+      expect(compareVersions('0.10.0', '0.9.3'), 1);
+      expect(compareVersions('0.2.0', '0.2.0+5'), 0);
+      expect(compareVersions('1.0', '1.0.1'), -1);
+    });
+
+    test('release JSON and checksums', () {
+      final r = ReleaseInfo.fromJson({
+        'tag_name': 'v0.3.0',
+        'body': 'Notes',
+        'html_url': 'https://example.com/r',
+        'assets': [
+          {'name': 'SHA256SUMS', 'browser_download_url': 'https://example.com/s'},
+        ],
+      })!;
+      expect(r.version, '0.3.0');
+      expect(r.assets['SHA256SUMS'], 'https://example.com/s');
+      expect(ReleaseInfo.fromJson({'tag_name': 'v1.0.0', 'draft': true}), isNull);
+      final sums = parseChecksums('${'a' * 64}  LocalBoard-0.3.0-Setup-x64.exe\n${'b' * 64} *other.zip\n');
+      expect(sums['LocalBoard-0.3.0-Setup-x64.exe'], 'a' * 64);
+      expect(sums['other.zip'], 'b' * 64);
+    });
+
+    test('each install kind updates from its own file', () {
+      expect(assetFor(InstallKind.windowsInstaller, '0.3.0'), 'LocalBoard-0.3.0-Setup-x64.exe');
+      expect(assetFor(InstallKind.appImage, '0.3.0'), 'LocalBoard-0.3.0-x86_64.AppImage');
+      expect(assetFor(InstallKind.linuxUserInstall, '0.3.0'), 'LocalBoard-0.3.0-linux-x86_64.tar.gz');
+      expect(assetFor(InstallKind.manual, '0.3.0'), isNull);
+      expect(detectInstallKind(executable: '${Directory.systemTemp.path}/nowhere/app.exe', environment: {}), InstallKind.manual);
+    });
   });
 
   test('relative time labels', () {

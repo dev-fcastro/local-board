@@ -1,17 +1,19 @@
 ---
 interface Props {
   eyebrow: string;
+  /** Version shown in the eyebrow, kept current by the release script. */
+  version?: string;
   lines: string[];
   description?: string;
 }
 
-const { eyebrow, lines, description } = Astro.props;
+const { eyebrow, version, lines, description } = Astro.props;
 ---
 
 <section class="page-hero">
   <div class="page-bg" data-mask></div>
   <div class="page-inner -w">
-    <p class="page-eyebrow -p" data-reveal>{eyebrow}</p>
+    <p class="page-eyebrow -p" data-reveal data-release-version={version}>{eyebrow}</p>
     <h1 class="page-title" data-rise>
       {lines.map((line) => <span><span>{line}</span></span>)}
     </h1>

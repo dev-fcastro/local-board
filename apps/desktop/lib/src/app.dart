@@ -4,8 +4,9 @@ import 'package:local_board_persistence/local_board_persistence.dart';
 
 import 'editor_screen.dart';
 import 'home_screen.dart';
+import 'services.dart';
 
-const appVersion = '0.1.0';
+const appVersion = '0.2.0';
 
 ThemeData buildTheme() {
   const ink = Color(Palette.ink);
@@ -36,9 +37,12 @@ ThemeData buildTheme() {
 
 /// Opens the last board you were working on, otherwise the board list.
 class LocalBoardApp extends StatefulWidget {
-  const LocalBoardApp({super.key, required this.store, this.openBoardId});
+  const LocalBoardApp({super.key, required this.store, this.services, this.openBoardId});
 
   final BoardStore store;
+
+  /// Settings, sync and updates. Tests leave it out and get offline defaults.
+  final AppServices? services;
   final String? openBoardId;
 
   @override
@@ -47,6 +51,8 @@ class LocalBoardApp extends StatefulWidget {
 
 class _LocalBoardAppState extends State<LocalBoardApp> {
   final _navigator = GlobalKey<NavigatorState>();
+  late final AppServices _services =
+      widget.services ?? AppServices(store: widget.store, settingsStore: SettingsStore(widget.store.root));
 
   @override
   void initState() {
@@ -67,12 +73,15 @@ class _LocalBoardAppState extends State<LocalBoardApp> {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      navigatorKey: _navigator,
-      title: 'Local Board',
-      debugShowCheckedModeBanner: false,
-      theme: buildTheme(),
-      home: HomeScreen(store: widget.store),
+    return Services(
+      services: _services,
+      child: MaterialApp(
+        navigatorKey: _navigator,
+        title: 'Local Board',
+        debugShowCheckedModeBanner: false,
+        theme: buildTheme(),
+        home: HomeScreen(store: widget.store),
+      ),
     );
   }
 }

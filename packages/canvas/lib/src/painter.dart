@@ -4,6 +4,7 @@ import 'dart:ui' as ui;
 import 'package:flutter/rendering.dart';
 import 'package:local_board_core/local_board_core.dart';
 
+import 'component_painter.dart';
 import 'palette.dart';
 import 'text_layout.dart';
 
@@ -40,7 +41,7 @@ TextPainter _textPainter(BoardObject o) => _textCache[o] ??= switch (o) {
 };
 
 /// Draws one object in world coordinates. Shared by the canvas and PNG export.
-void paintObject(Canvas canvas, BoardObject o, {double opacity = 1}) {
+void paintObject(Canvas canvas, BoardObject o, {double opacity = 1, bool showLabel = true}) {
   final layer = opacity < 1;
   if (layer) canvas.saveLayer(null, Paint()..color = Color.fromRGBO(0, 0, 0, opacity));
   switch (o) {
@@ -70,6 +71,8 @@ void paintObject(Canvas canvas, BoardObject o, {double opacity = 1}) {
       if (n.text.isNotEmpty) {
         _textPainter(n).paint(canvas, r.topLeft + const Offset(BoardStyle.stickyPadding, BoardStyle.stickyPadding));
       }
+    case ComponentObject c:
+      paintComponent(canvas, c, showLabel: showLabel);
   }
   if (layer) canvas.restore();
 }
@@ -115,6 +118,7 @@ final class BoardScene {
     this.preview = const {},
     this.erasing = const {},
     this.hidden,
+    this.blankLabel,
     this.draft,
     this.selection = const {},
     this.selectionBounds,
@@ -127,6 +131,9 @@ final class BoardScene {
   final Map<String, BoardObject> preview;
   final Set<String> erasing;
   final String? hidden;
+
+  /// Component whose label is being edited in place (drawn without it).
+  final String? blankLabel;
   final BoardObject? draft;
   final Set<String> selection;
   final Bounds? selectionBounds;
@@ -162,10 +169,10 @@ class BoardPainter extends CustomPainter {
       if (original.id == scene.hidden) continue;
       final o = scene.preview[original.id] ?? original;
       if (!visible.overlaps(o.bounds)) continue; // culling keeps big boards fast
-      paintObject(canvas, o, opacity: scene.erasing.contains(o.id) ? 0.25 : 1);
+      paintObject(canvas, o, opacity: scene.erasing.contains(o.id) ? 0.25 : 1, showLabel: o.id != scene.blankLabel);
     }
     final draft = scene.draft;
-    if (draft != null) paintObject(canvas, draft);
+    if (draft != null) paintObject(canvas, draft, opacity: draft is ComponentObject ? 0.55 : 1);
 
     final hairline = 1 / v.zoom;
     if (scene.selection.isNotEmpty) {

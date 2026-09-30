@@ -1,9 +1,19 @@
+import 'dart:io' show Platform;
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:local_board_canvas/local_board_canvas.dart';
 import 'package:local_board_core/local_board_core.dart';
 import 'package:local_board_persistence/local_board_persistence.dart';
+
+/// Human name of the OS the app is running on.
+String get platformName => Platform.isWindows
+    ? 'Windows'
+    : Platform.isMacOS
+    ? 'macOS'
+    : Platform.isLinux
+    ? 'Linux'
+    : Platform.operatingSystem;
 
 class AppLogo extends StatelessWidget {
   const AppLogo({super.key, this.size = 24});

@@ -1,7 +1,7 @@
 name: local_board
 description: "Local Board — a local-first whiteboard. Your boards live on your computer."
 publish_to: none
-version: 0.1.0+1
+version: 0.2.0+2
 
 environment:
   sdk: ^3.9.0
@@ -16,6 +16,8 @@ dependencies:
   local_board_persistence: any
   local_board_canvas: any
   file_selector: ^1.1.0
+  crypto: ^3.0.0
+  path: ^1.9.0
 
 dev_dependencies:
   flutter_test:
