@@ -146,7 +146,7 @@ jobs:
           ### Linux (64-bit)
           **Install (recommended)**
           \`\`\`sh
-          curl -fsSL https://localboard-one.vercel.app/install.sh | sh
+          curl -fsSL https://localboards.vercel.app/install.sh | sh
           \`\`\`
 
           **Or download**

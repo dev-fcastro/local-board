@@ -1,11 +1,11 @@
 #!/bin/sh
 # Local Board installer for Linux (x86_64). No root needed.
 #
-#   curl -fsSL https://localboard-one.vercel.app/install.sh | sh
+#   curl -fsSL https://localboards.vercel.app/install.sh | sh
 #
 # Installs the latest release into ~/.local, adds it to your app launcher with
 # its icon, and registers .whiteboard files. Re-run to update.
-# Uninstall:  curl -fsSL https://localboard-one.vercel.app/install.sh | sh -s -- --uninstall
+# Uninstall:  curl -fsSL https://localboards.vercel.app/install.sh | sh -s -- --uninstall
 # Your boards (~/.local/share/local-board) are never touched.
 set -eu
 
