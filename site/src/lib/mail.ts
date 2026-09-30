@@ -13,6 +13,15 @@ export interface MailConfig {
 
 type Env = Record<string, string | undefined>;
 
+const SENDER_NAME = "Local Board";
+
+/** "me@x.com" → "Local Board <me@x.com>", so inboxes show a name. An address
+ * that already has one ("Someone <me@x.com>") is kept as is. */
+export function withSenderName(from: string): string {
+  const address = from.trim();
+  return address.includes("<") ? address : `${SENDER_NAME} <${address}>`;
+}
+
 /** Reads Django-style EMAIL_* variables. Returns null when SMTP is not configured. */
 export function mailConfig(env: Env = process.env): MailConfig | null {
   const host = env.EMAIL_HOST;
@@ -28,7 +37,7 @@ export function mailConfig(env: Env = process.env): MailConfig | null {
     requireTLS: tls && port !== 465,
     user,
     pass,
-    from: env.DEFAULT_FROM_EMAIL || user,
+    from: withSenderName(env.DEFAULT_FROM_EMAIL || user),
     notifyTo: env.EARLY_ACCESS_NOTIFY_TO || undefined,
   };
 }
