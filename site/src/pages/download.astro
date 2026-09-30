@@ -50,7 +50,7 @@ const steps = [
     <ul class="platform-grid">
       {
         platforms.map((p, i) => (
-          <li class="platform" data-platform-card={p.id}>
+          <li class="platform" data-platform-card={p.id} tabindex="0" aria-label={`Choose ${p.name}`}>
             <span class="rule rule-side" data-line="y" aria-hidden="true" />
             <div class="platform-top">
               <p class="platform-index -p">{String(i + 1).padStart(2, "0")}</p>
@@ -122,6 +122,8 @@ const steps = [
 </Base>
 
 <script>
+  import { ScrollTrigger } from "gsap/ScrollTrigger";
+
   const ua = navigator.userAgent;
   const hint = (
     (navigator as Navigator & { userAgentData?: { platform?: string } }).userAgentData?.platform ??
@@ -140,19 +142,52 @@ const steps = [
           ? "linux"
           : null;
 
+  const cards = document.querySelectorAll<HTMLElement>("[data-platform-card]");
+  const macNote = document.querySelector<HTMLElement>("[data-mac-note]")!;
+
+  /** Highlights a platform card and shows its download at the top. */
+  function select(id: string) {
+    cards.forEach((card) => card.toggleAttribute("data-selected", card.dataset.platformCard === id));
+    showInstall(id);
+    if (isMobile) return;
+    // No macOS build yet: explain instead of offering the wrong download.
+    macNote.hidden = id !== "macos";
+    document.querySelectorAll<HTMLElement>("[data-choice]").forEach((el) => {
+      el.hidden = el.dataset.choice !== id;
+    });
+  }
+
+  /** Shows only the install guide of the chosen platform (none for macOS yet). */
+  function showInstall(id: string) {
+    document.querySelectorAll<HTMLElement>("[data-install]").forEach((el) => {
+      el.style.display = el.dataset.install === id ? "" : "none";
+    });
+    // Sections below moved: recompute the scroll animations' positions.
+    requestAnimationFrame(() => ScrollTrigger.refresh());
+  }
+
   if (isMobile) {
     document.querySelectorAll<HTMLElement>("[data-choice]").forEach((el) => (el.hidden = true));
     document.querySelector<HTMLElement>("[data-mobile-note]")!.hidden = false;
-  } else if (os === "macos") {
-    // No macOS build yet: explain instead of offering the wrong download.
-    document.querySelectorAll<HTMLElement>("[data-choice]").forEach((el) => (el.hidden = true));
-    document.querySelector<HTMLElement>("[data-mac-note]")!.hidden = false;
-  } else if (os) {
-    document.querySelectorAll<HTMLElement>("[data-choice]").forEach((el) => {
-      el.hidden = el.dataset.choice !== os;
-    });
-    document.querySelector(`[data-platform-card="${os}"]`)?.setAttribute("data-recommended", "");
   }
+  // "Recommended for you" stays on the detected system; the selection moves.
+  if (os) document.querySelector(`[data-platform-card="${os}"]`)?.setAttribute("data-recommended", "");
+  // Links straight to a guide (#install is Linux) open that platform.
+  const guides: Record<string, string> = { "#install": "linux", "#install-windows": "windows" };
+  const fromHash = guides[location.hash];
+  select(fromHash ?? os ?? "windows");
+  if (fromHash) document.querySelector(location.hash)?.scrollIntoView();
+
+  cards.forEach((card) => {
+    const id = card.dataset.platformCard!;
+    card.addEventListener("click", () => select(id));
+    card.addEventListener("keydown", (e) => {
+      if (e.target === card && (e.key === "Enter" || e.key === " ")) {
+        e.preventDefault();
+        select(id);
+      }
+    });
+  });
 </script>
 
 <style>
@@ -214,7 +249,25 @@ const steps = [
     }
   }
 
-  .platform[data-recommended] {
+  .platform {
+    cursor: pointer;
+    box-shadow: inset 0 0 0 var(--accent);
+    transition:
+      background 0.35s var(--ease-standard),
+      box-shadow 0.35s var(--ease-standard);
+  }
+
+  .platform:hover,
+  .platform:focus-within {
+    background: var(--canvas);
+  }
+
+  .platform:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: -2px;
+  }
+
+  .platform[data-selected] {
     background: var(--canvas);
     box-shadow: inset 0 4px 0 var(--accent);
   }
