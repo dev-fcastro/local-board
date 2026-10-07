@@ -102,20 +102,6 @@ class SaveIndicator extends StatelessWidget {
   }
 }
 
-const _toolIcons = <Tool, IconData>{
-  Tool.select: Icons.near_me_outlined,
-  Tool.hand: Icons.pan_tool_outlined,
-  Tool.pen: Icons.edit_outlined,
-  Tool.eraser: Icons.cleaning_services_outlined,
-  Tool.line: Icons.horizontal_rule,
-  Tool.arrow: Icons.arrow_right_alt,
-  Tool.rectangle: Icons.crop_square,
-  Tool.ellipse: Icons.circle_outlined,
-  Tool.text: Icons.text_fields,
-  Tool.sticky: Icons.sticky_note_2_outlined,
-  Tool.component: Icons.category_outlined,
-};
-
 /// Bottom tool dock, like the site mockup: "Select Pen Shape Text".
 class ToolDock extends StatelessWidget {
   const ToolDock({super.key, required this.controller, this.libraryOpen = false, this.onLibrary, this.onInsertImage});
@@ -145,9 +131,9 @@ class ToolDock extends StatelessWidget {
             if (g > 0) const SizedBox(height: 24, child: VerticalDivider(width: 12)),
             for (final t in groups[g])
               IconBtn(
-                icon: _toolIcons[t]!,
+                icon: t.icon,
                 tooltip: '${t.label}  ${t.shortcutLabel}',
-                active: controller.tool == t,
+                active: controller.displayTool == t,
                 onPressed: () => controller.setTool(t),
               ),
           ],
@@ -162,7 +148,7 @@ class ToolDock extends StatelessWidget {
           if (onLibrary != null) ...[
             const SizedBox(height: 24, child: VerticalDivider(width: 12)),
             IconBtn(
-              icon: _toolIcons[Tool.component]!,
+              icon: Tool.component.icon,
               tooltip: 'Components  ${Tool.component.shortcutLabel}',
               active: libraryOpen,
               onPressed: onLibrary,

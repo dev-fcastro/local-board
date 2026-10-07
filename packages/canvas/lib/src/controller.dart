@@ -188,6 +188,66 @@ class BoardController extends ChangeNotifier {
     _emit();
   }
 
+  // ---- tool wheel (Alt + mouse wheel) ----
+
+  Tool? _wheel;
+
+  /// True while the radial tool picker is open.
+  bool get toolWheelOpen => _wheel != null;
+
+  /// The tool highlighted on the wheel, or null when it is closed.
+  Tool? get wheelTool => _wheel;
+
+  /// The tool the toolbar should highlight: the wheel's candidate while it is
+  /// open, otherwise the active tool.
+  Tool get displayTool => _wheel ?? _tool;
+
+  /// Opens the wheel on the active tool. Refused while typing or mid-gesture.
+  bool openToolWheel() {
+    if (_wheel != null) return true;
+    if (editing != null || isInteracting) return false;
+    _wheel = _tool;
+    _emit();
+    return true;
+  }
+
+  /// Moves the wheel's highlight [steps] tools forward (or back when negative),
+  /// wrapping around. Opens the wheel first if needed. The active tool (and
+  /// the selection) only change once the wheel is confirmed.
+  void stepToolWheel(int steps) {
+    if (!openToolWheel()) return;
+    const all = Tool.values;
+    final next = (all.indexOf(_wheel!) + steps) % all.length;
+    _wheel = all[next < 0 ? next + all.length : next];
+    _emit();
+  }
+
+  /// Highlights [t] on the open wheel (pointer hover).
+  void previewWheelTool(Tool t) {
+    if (_wheel == null || _wheel == t) return;
+    _wheel = t;
+    _emit();
+  }
+
+  /// Closes the wheel and makes the highlighted tool the active one.
+  void confirmToolWheel() {
+    final t = _wheel;
+    if (t == null) return;
+    _wheel = null;
+    if (t == _tool) {
+      _emit();
+    } else {
+      setTool(t);
+    }
+  }
+
+  /// Closes the wheel and keeps the previous tool.
+  void cancelToolWheel() {
+    if (_wheel == null) return;
+    _wheel = null;
+    _emit();
+  }
+
   /// Picks a component from the library; the next click on the board places it.
   void armComponent(BoardPlugin plugin, ComponentKind kind) {
     _armedPlugin = plugin;
@@ -972,6 +1032,19 @@ class BoardController extends ChangeNotifier {
   bool handleKey(KeyEvent event) {
     if (editing != null) return false;
     final key = event.logicalKey;
+
+    // Alt on its own does nothing, but its events are consumed so the OS does
+    // not treat a bare Alt press as "focus the menu". Releasing the last Alt
+    // confirms an open tool wheel.
+    if (key == LogicalKeyboardKey.altLeft || key == LogicalKeyboardKey.altRight) {
+      if (event is KeyUpEvent && !HardwareKeyboard.instance.isAltPressed) confirmToolWheel();
+      return true;
+    }
+    if (_wheel != null) {
+      // The wheel owns the keyboard: Escape cancels, everything else waits.
+      if (key == LogicalKeyboardKey.escape && event is! KeyUpEvent) cancelToolWheel();
+      return true;
+    }
 
     if (key == LogicalKeyboardKey.space) {
       if (event is KeyDownEvent || event is KeyRepeatEvent) {

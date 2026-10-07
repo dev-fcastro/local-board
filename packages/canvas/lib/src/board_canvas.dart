@@ -8,6 +8,7 @@ import 'component_painter.dart';
 import 'painter.dart';
 import 'palette.dart';
 import 'text_layout.dart';
+import 'tool_wheel.dart';
 import 'tools.dart';
 
 /// The infinite canvas. Owns no board state: everything lives in
@@ -27,6 +28,11 @@ class _BoardCanvasState extends State<BoardCanvas> {
   late FocusNode _focus = widget.focusNode ?? FocusNode(debugLabel: 'board');
   bool _ownsFocus = true;
   bool _placedInitialView = false;
+
+  // Alt + wheel tool switching.
+  Offset _wheelAnchor = Offset.zero;
+  double _wheelAccum = 0;
+  static const _wheelTick = 50.0; // scroll units per tool step (a notch is ~100-120)
 
   BoardController get c => widget.controller;
 
@@ -63,6 +69,32 @@ class _BoardCanvasState extends State<BoardCanvas> {
     if (!mounted) return;
     setState(() {});
     if (c.editing == null && !_focus.hasFocus) _focus.requestFocus();
+  }
+
+  /// Alt (without Ctrl, so AltGr stays a typing key) + wheel switches tools.
+  bool get _wantsToolWheel {
+    final kb = HardwareKeyboard.instance;
+    return c.editing == null && kb.isAltPressed && !kb.isControlPressed && !kb.isMetaPressed;
+  }
+
+  void _wheelScroll(PointerScrollEvent s, Size view) {
+    if (!c.toolWheelOpen) {
+      if (c.isInteracting) return;
+      const r = ToolWheelOverlay.outerRadius + 12;
+      // Centered on the cursor, nudged inwards so the whole ring stays visible.
+      double fit(double v, double extent) => extent < r * 2 ? extent / 2 : v.clamp(r, extent - r);
+      _wheelAnchor = Offset(fit(s.localPosition.dx, view.width), fit(s.localPosition.dy, view.height));
+      _wheelAccum = 0;
+    }
+    final d = s.scrollDelta.dy != 0 ? s.scrollDelta.dy : s.scrollDelta.dx;
+    if (d == 0) return;
+    if (_wheelAccum != 0 && _wheelAccum.sign != d.sign) _wheelAccum = 0;
+    _wheelAccum += d;
+    // One notch (~100 units) is one tool; smooth wheels add up to a notch.
+    if (c.toolWheelOpen && _wheelAccum.abs() < _wheelTick) return;
+    _wheelAccum = 0;
+    final steps = d.sign.toInt();
+    c.stepToolWheel(steps);
   }
 
   MouseCursor get _cursor {
@@ -113,10 +145,15 @@ class _BoardCanvasState extends State<BoardCanvas> {
           focusNode: _focus,
           autofocus: widget.autofocus,
           onKeyEvent: (_, e) => c.handleKey(e) ? KeyEventResult.handled : KeyEventResult.ignored,
+          // Alt-tabbing away would swallow the Alt release: pick what is shown.
+          onFocusChange: (focused) {
+            if (!focused && c.toolWheelOpen) c.confirmToolWheel();
+          },
           child: MouseRegion(
-            cursor: _cursor,
+            cursor: c.toolWheelOpen ? SystemMouseCursors.basic : _cursor,
             onExit: (_) => c.pointerExit(),
             onHover: (e) {
+              if (c.toolWheelOpen) return;
               c.pointerHover(e.localPosition);
               if (c.tool == Tool.select) setState(() {}); // cursor over handles
             },
@@ -124,22 +161,32 @@ class _BoardCanvasState extends State<BoardCanvas> {
               behavior: HitTestBehavior.opaque,
               onPointerDown: (e) {
                 _focus.requestFocus();
+                if (c.toolWheelOpen) return; // the wheel handles its own clicks
                 c.pointerDown(e.localPosition, buttons: e.buttons, shift: HardwareKeyboard.instance.isShiftPressed);
               },
-              onPointerMove: (e) => c.pointerMove(e.localPosition, shift: HardwareKeyboard.instance.isShiftPressed),
+              onPointerMove: (e) {
+                if (!c.toolWheelOpen) c.pointerMove(e.localPosition, shift: HardwareKeyboard.instance.isShiftPressed);
+              },
               onPointerUp: (_) => c.pointerUp(),
               onPointerCancel: (_) => c.pointerCancel(),
               onPointerSignal: (e) {
                 if (e is PointerScrollEvent) {
                   GestureBinding.instance.pointerSignalResolver.register(e, (event) {
                     final s = event as PointerScrollEvent;
-                    c.scroll(s.localPosition, s.scrollDelta);
+                    // While the wheel is open (or Alt starts it) the mouse
+                    // wheel only switches tools: no zoom, no scroll.
+                    if (c.toolWheelOpen || _wantsToolWheel) {
+                      _wheelScroll(s, constraints.biggest);
+                    } else {
+                      c.scroll(s.localPosition, s.scrollDelta);
+                    }
                   });
                 } else if (e is PointerScaleEvent) {
                   c.zoomBy(e.scale, focal: e.localPosition);
                 }
               },
-              onPointerPanZoomUpdate: (e) => c.trackpad(e.localPosition, e.panDelta, e.scale == 1 ? 1 : 1 + (e.scale - 1) * 0.1),
+              onPointerPanZoomUpdate: (e) =>
+                  c.trackpad(e.localPosition, e.panDelta, e.scale == 1 ? 1 : 1 + (e.scale - 1) * 0.1),
               child: Stack(
                 children: [
                   Positioned.fill(
@@ -166,6 +213,18 @@ class _BoardCanvasState extends State<BoardCanvas> {
                     ),
                   ),
                   if (c.editing != null) _TextEditorOverlay(key: ValueKey(c.editing), controller: c),
+                  Positioned.fill(
+                    child: ToolWheelOverlay(
+                      open: c.toolWheelOpen,
+                      tool: c.wheelTool,
+                      anchor: _wheelAnchor,
+                      onHover: c.previewWheelTool,
+                      onSelect: (t) {
+                        c.previewWheelTool(t);
+                        c.confirmToolWheel();
+                      },
+                    ),
+                  ),
                 ],
               ),
             ),

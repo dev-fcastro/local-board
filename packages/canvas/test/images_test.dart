@@ -1,6 +1,8 @@
 import 'dart:convert';
+import 'dart:math' as math;
 import 'dart:ui' as ui;
 
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -301,6 +303,40 @@ void main() {
       await tester.sendKeyEvent(LogicalKeyboardKey.bracketLeft);
       await tester.sendKeyUpEvent(LogicalKeyboardKey.controlLeft);
       expect(c.document.order, [a, b, d]);
+    });
+  });
+
+  group('tool wheel with a picture selected', () {
+    testWidgets('Alt + wheel works, a click on a sector picks it, the selection survives browsing', (tester) async {
+      late BoardController c;
+      await tester.runAsync(() async {
+        c = BoardController(BoardDocument.create());
+        await c.insertImage(await makePng(200, 100));
+      });
+      tester.view.physicalSize = const Size(1000, 800);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      await tester.pumpWidget(MaterialApp(home: Scaffold(body: BoardCanvas(controller: c))));
+      await tester.pumpAndSettle();
+      expect(c.selection, isNotEmpty);
+
+      final p = TestPointer(1, PointerDeviceKind.mouse);
+      await tester.sendEventToBinding(p.hover(const Offset(500, 400)));
+      await tester.sendKeyDownEvent(LogicalKeyboardKey.altLeft);
+      await tester.sendEventToBinding(p.scroll(const Offset(0, 100)));
+      await tester.pumpAndSettle();
+      expect(c.wheelTool, Tool.hand);
+      expect(c.selection, isNotEmpty); // browsing does not touch the selection
+
+      // Line is sector 4 of 11, clockwise from the top, on a ring centered on the cursor.
+      final a = -math.pi / 2 + 4 * 2 * math.pi / 11;
+      await tester.tapAt(const Offset(500, 400) + Offset(math.cos(a), math.sin(a)) * 104);
+      await tester.pumpAndSettle();
+      expect(c.toolWheelOpen, isFalse);
+      expect(c.tool, Tool.line);
+      await tester.sendKeyUpEvent(LogicalKeyboardKey.altLeft);
+      await tester.pumpAndSettle();
+      expect(c.tool, Tool.line);
     });
   });
 

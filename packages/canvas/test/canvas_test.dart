@@ -308,6 +308,108 @@ void main() {
     expect(bytes.sublist(0, 8), Uint8List.fromList([0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A]));
   });
 
+  group('tool wheel (Alt + mouse wheel)', () {
+    late BoardController c;
+
+    Future<TestPointer> pumpBoard(WidgetTester tester) async {
+      c = BoardController(BoardDocument.create());
+      tester.view.physicalSize = const Size(1000, 800);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      await tester.pumpWidget(MaterialApp(home: Scaffold(body: BoardCanvas(controller: c))));
+      await tester.pumpAndSettle();
+      final p = TestPointer(1, PointerDeviceKind.mouse);
+      await tester.sendEventToBinding(p.hover(const Offset(500, 400)));
+      return p;
+    }
+
+    Future<void> wheel(WidgetTester tester, TestPointer p, double dy) async {
+      await tester.sendEventToBinding(p.scroll(Offset(0, dy)));
+      await tester.pump(const Duration(milliseconds: 40));
+    }
+
+    testWidgets('each tick moves one tool; releasing Alt confirms and syncs the toolbar state', (tester) async {
+      final p = await pumpBoard(tester);
+      expect(c.tool, Tool.select);
+
+      await tester.sendKeyDownEvent(LogicalKeyboardKey.altLeft);
+      await wheel(tester, p, 100);
+      expect(c.toolWheelOpen, isTrue);
+      expect(c.wheelTool, Tool.hand);
+      expect(c.displayTool, Tool.hand); // the dock follows the wheel...
+      expect(c.tool, Tool.select); // ...but the real tool waits for the release
+      await tester.pumpAndSettle();
+      expect(find.text('Hand'), findsOneWidget); // name in the middle
+
+      await wheel(tester, p, 100);
+      expect(c.wheelTool, Tool.pen);
+      await wheel(tester, p, -100);
+      await wheel(tester, p, -100);
+      await wheel(tester, p, -100); // wraps around backwards
+      expect(c.wheelTool, Tool.component);
+
+      await tester.sendKeyUpEvent(LogicalKeyboardKey.altLeft);
+      await tester.pumpAndSettle();
+      expect(c.toolWheelOpen, isFalse);
+      expect(c.tool, Tool.component);
+      expect(find.byType(ToolWheelOverlay), findsOneWidget);
+      expect(find.text('Component'), findsNothing); // closed: nothing drawn
+    });
+
+    testWidgets('Escape cancels and keeps the previous tool', (tester) async {
+      final p = await pumpBoard(tester);
+      c.setTool(Tool.pen);
+      await tester.sendKeyDownEvent(LogicalKeyboardKey.altLeft);
+      await wheel(tester, p, 100);
+      expect(c.wheelTool, Tool.eraser);
+      await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+      await tester.pumpAndSettle();
+      expect(c.toolWheelOpen, isFalse);
+      expect(c.tool, Tool.pen);
+      await tester.sendKeyUpEvent(LogicalKeyboardKey.altLeft);
+      await tester.pumpAndSettle();
+      expect(c.tool, Tool.pen); // the Alt release after Escape changes nothing
+    });
+
+    testWidgets('the wheel never zooms the board while Alt is held or the wheel is open', (tester) async {
+      final p = await pumpBoard(tester);
+      final before = c.camera;
+      await wheel(tester, p, -100); // plain wheel still zooms
+      final zoomed = c.camera;
+      expect(zoomed.zoom, isNot(before.zoom));
+
+      await tester.sendKeyDownEvent(LogicalKeyboardKey.altLeft);
+      await wheel(tester, p, 100);
+      await wheel(tester, p, 100);
+      expect(c.camera, zoomed);
+      await tester.sendKeyUpEvent(LogicalKeyboardKey.altLeft);
+      await tester.pumpAndSettle();
+      expect(c.camera, zoomed);
+    });
+
+    testWidgets('Alt alone opens nothing and AltGr (Ctrl+Alt) does not open the wheel', (tester) async {
+      final p = await pumpBoard(tester);
+      await tester.sendKeyDownEvent(LogicalKeyboardKey.altLeft);
+      await tester.pump();
+      expect(c.toolWheelOpen, isFalse);
+      await tester.sendKeyUpEvent(LogicalKeyboardKey.altLeft);
+      expect(c.tool, Tool.select);
+
+      await tester.sendKeyDownEvent(LogicalKeyboardKey.controlLeft);
+      await tester.sendKeyDownEvent(LogicalKeyboardKey.altRight);
+      final zoom = c.camera.zoom;
+      await wheel(tester, p, -100);
+      expect(c.toolWheelOpen, isFalse);
+      expect(c.camera.zoom, isNot(zoom)); // behaves like a normal wheel
+      await tester.sendKeyUpEvent(LogicalKeyboardKey.altRight);
+      await tester.sendKeyUpEvent(LogicalKeyboardKey.controlLeft);
+
+      // Other shortcuts still work after all that.
+      await tester.sendKeyEvent(LogicalKeyboardKey.keyR);
+      expect(c.tool, Tool.rectangle);
+    });
+  });
+
   group('plugin components', () {
     test('armed component follows the cursor, a click places it and opens its name', () {
       final c = newController();

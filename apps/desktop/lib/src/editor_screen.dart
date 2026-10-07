@@ -464,7 +464,7 @@ class _EmptyHint extends StatelessWidget {
           Text('Pick a tool below and start drawing.', style: TextStyle(color: Color(Palette.inkSecondary), fontSize: 18)),
           SizedBox(height: 8),
           Text(
-            'P pen · R rectangle · T text · N sticky note · C components · Ctrl+V paste an image · drop pictures here · Space+drag to move around · wheel to zoom',
+            'P pen · R rectangle · T text · N sticky note · C components · Alt+wheel switch tool · Ctrl+V paste an image · drop pictures here · Space+drag to move around · wheel to zoom',
             style: style,
           ),
         ],

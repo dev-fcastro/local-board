@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:local_board/src/app.dart';
+import 'package:local_board/src/toolbar.dart';
 import 'package:local_board/src/updater.dart';
 import 'package:local_board/src/widgets.dart';
 import 'package:local_board_core/local_board_core.dart';
@@ -94,6 +95,43 @@ void main() {
 
     // Close the app and let pending writes finish: Windows cannot delete the
     // temp folder while a save still has a file open.
+    await tester.pumpWidget(const SizedBox());
+    await settleIo(tester);
+  });
+
+  testWidgets('Alt + wheel opens the tool wheel and the dock follows it', (tester) async {
+    final store = BoardStore(dir);
+    await pumpApp(tester, store);
+    await tester.tap(find.text('Create your first board'));
+    await settleIo(tester, until: find.text('Untitled board'));
+
+    bool active(String tooltip) =>
+        tester.widget<IconBtn>(find.ancestor(of: find.byTooltip(tooltip), matching: find.byType(IconBtn))).active;
+    expect(active('Select  V'), isTrue);
+
+    final pointer = TestPointer(1, PointerDeviceKind.mouse);
+    await tester.sendEventToBinding(pointer.hover(const Offset(700, 400)));
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.altLeft);
+    await tester.sendEventToBinding(pointer.scroll(const Offset(0, 100)));
+    await tester.sendEventToBinding(pointer.scroll(const Offset(0, 100)));
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(find.text('Pen'), findsWidgets); // name in the middle of the wheel
+    expect(active('Pen  P'), isTrue);
+    expect(active('Select  V'), isFalse);
+
+    // Escape puts the dock back.
+    await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(active('Select  V'), isTrue);
+
+    await tester.sendEventToBinding(pointer.scroll(const Offset(0, 100)));
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.altLeft);
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(active('Hand  H'), isTrue);
+
+    // Leave through the app (flushes the autosave) before tearing down.
+    await tester.tap(find.byTooltip('All boards (Ctrl+W)'));
+    await settleIo(tester, until: find.textContaining('Untitled board'));
     await tester.pumpWidget(const SizedBox());
     await settleIo(tester);
   });
