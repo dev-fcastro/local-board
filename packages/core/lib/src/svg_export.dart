@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:math' as math;
 
 import 'document.dart';
@@ -73,7 +74,7 @@ String exportSvg(BoardDocument doc, {double padding = 32, bool background = true
   }
   const font = 'font-family="${BoardStyle.fontFamily}, system-ui, sans-serif"';
 
-  for (final o in doc.objects) {
+  for (final o in doc.visibleObjects) {
     switch (o) {
       case StrokeObject s:
         out.writeln(
@@ -137,6 +138,21 @@ String exportSvg(BoardDocument doc, {double padding = 32, bool background = true
         }
       case ComponentObject c:
         _component(out, c, paint, f);
+      case ImageObject i:
+        final asset = doc.asset(i.assetId);
+        final b = i.bounds;
+        if (asset == null) {
+          // Bytes missing (file moved away): keep the spot visible.
+          out.writeln(
+            '<rect x="${f(b.left)}" y="${f(b.top)}" width="${f(b.width)}" height="${f(b.height)}" '
+            'fill="#ece9ff" stroke="#c7c2f5" stroke-width="1"/>',
+          );
+        } else {
+          out.writeln(
+            '<image x="${f(b.left)}" y="${f(b.top)}" width="${f(b.width)}" height="${f(b.height)}" '
+            'preserveAspectRatio="none" href="data:${asset.mime};base64,${base64Encode(asset.bytes)}"/>',
+          );
+        }
     }
   }
   out.writeln('</svg>');

@@ -155,7 +155,10 @@ class _BoardCanvasState extends State<BoardCanvas> {
                             blankLabel: c.editing?.isLabel == true ? c.editing?.objectId : null,
                             draft: c.draft,
                             selection: c.selection,
-                            selectionBounds: c.tool == Tool.select && !c.isInteracting ? c.selectionBounds : null,
+                            selectionBounds: c.tool == Tool.select && !c.isInteracting && c.canTransformSelection
+                                ? c.selectionBounds
+                                : null,
+                            images: c.images,
                             marquee: c.marquee,
                           ),
                         ),

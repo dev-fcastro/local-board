@@ -153,9 +153,9 @@ void main() {
     });
   });
 
-  group('schema 2', () {
-    test('new boards are written as schema 2', () {
-      expect(BoardDocument.create().toJson()['schemaVersion'], 2);
+  group('schema versions', () {
+    test('new boards are written with the current schema', () {
+      expect(BoardDocument.create().toJson()['schemaVersion'], currentSchemaVersion);
     });
 
     test('schema 1 boards migrate unchanged', () {

@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 import 'dart:ui' show AppExitResponse;
 
+import 'package:desktop_drop/desktop_drop.dart';
 import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -10,6 +11,8 @@ import 'package:local_board_core/local_board_core.dart';
 import 'package:local_board_persistence/local_board_persistence.dart';
 
 import 'component_library.dart';
+import 'image_input.dart';
+import 'layers_panel.dart';
 import 'services.dart';
 import 'settings_screen.dart';
 import 'toolbar.dart';
@@ -43,6 +46,8 @@ class _EditorScreenState extends State<EditorScreen> with WidgetsBindingObserver
   );
   AppServices? _services;
   bool _library = false;
+  bool _layers = false;
+  bool _dropping = false;
   final _canvasFocus = FocusNode(debugLabel: 'board');
   late final AppLifecycleListener _lifecycle;
 
@@ -52,6 +57,7 @@ class _EditorScreenState extends State<EditorScreen> with WidgetsBindingObserver
   void initState() {
     super.initState();
     c.addListener(_onChange);
+    c.clipboardReader = readSystemClipboard; // Ctrl+V also sees images and copied files
     store.setLastOpened(c.document.id);
     // Flush before the process goes away (window close, logout).
     _lifecycle = AppLifecycleListener(
@@ -162,6 +168,45 @@ class _EditorScreenState extends State<EditorScreen> with WidgetsBindingObserver
     _canvasFocus.requestFocus();
   }
 
+  void _toggleLayers() {
+    setState(() => _layers = !_layers);
+    _canvasFocus.requestFocus();
+  }
+
+  /// "Insert image": pick picture files and put them in the middle of the view.
+  Future<void> _insertImage() async {
+    final picked = await pickImages();
+    if (!mounted) return;
+    if (picked.isNotEmpty) await _addImages(picked);
+    _canvasFocus.requestFocus();
+  }
+
+  Future<void> _addImages(List<PastedImage> images, {Vec2? at}) async {
+    var added = 0;
+    for (final image in images) {
+      final shift = const Vec2(24, 24) * added.toDouble();
+      if (await c.insertImage(image.bytes, name: image.name, center: at, shift: shift)) added++;
+    }
+    if (mounted && added < images.length) {
+      showMessage(
+        context,
+        added == 0 ? 'That file is not a picture Local Board can open.' : 'Some files were not pictures and were skipped.',
+      );
+    }
+  }
+
+  Future<void> _onDrop(DropDoneDetails details) async {
+    setState(() => _dropping = false);
+    final images = await readImageFiles(details.files.map((f) => f.path));
+    if (!mounted) return;
+    if (images.isEmpty) {
+      showMessage(context, 'Drop PNG, JPG, GIF, WebP or BMP pictures here.');
+      return;
+    }
+    await _addImages(images, at: c.toWorld(details.localPosition));
+    _canvasFocus.requestFocus();
+  }
+
   @override
   Widget build(BuildContext context) {
     final services = Services.of(context);
@@ -174,11 +219,38 @@ class _EditorScreenState extends State<EditorScreen> with WidgetsBindingObserver
         },
         const SingleActivator(LogicalKeyboardKey.keyE, control: true, shift: true): () => _export('png'),
         const SingleActivator(LogicalKeyboardKey.keyW, control: true): _back,
+        const SingleActivator(LogicalKeyboardKey.keyL, control: true, shift: true): _toggleLayers,
+        const SingleActivator(LogicalKeyboardKey.keyI, control: true, shift: true): _insertImage,
       },
       child: Scaffold(
         body: Stack(
           children: [
-            Positioned.fill(child: BoardCanvas(controller: c, focusNode: _canvasFocus)),
+            Positioned.fill(
+              child: DropTarget(
+                onDragEntered: (_) => setState(() => _dropping = true),
+                onDragExited: (_) => setState(() => _dropping = false),
+                onDragDone: _onDrop,
+                child: BoardCanvas(controller: c, focusNode: _canvasFocus),
+              ),
+            ),
+            if (_dropping)
+              Positioned.fill(
+                child: IgnorePointer(
+                  child: Container(
+                    margin: const EdgeInsets.all(6),
+                    decoration: BoxDecoration(
+                      color: const Color(0x0F4F46E5),
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(color: const Color(Palette.accent), width: 2),
+                    ),
+                    alignment: Alignment.center,
+                    child: const Text(
+                      'Drop pictures to add them to the board',
+                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Color(Palette.accent)),
+                    ),
+                  ),
+                ),
+              ),
             Positioned(
               left: 12,
               right: 12,
@@ -189,6 +261,8 @@ class _EditorScreenState extends State<EditorScreen> with WidgetsBindingObserver
                 onBack: _back,
                 onRename: _rename,
                 onExport: _export,
+                layersOpen: _layers,
+                onLayers: _toggleLayers,
                 canUndo: c.canUndo,
                 canRedo: c.canRedo,
                 onUndo: c.undo,
@@ -202,7 +276,12 @@ class _EditorScreenState extends State<EditorScreen> with WidgetsBindingObserver
               left: 0,
               right: 0,
               bottom: 16,
-              child: Center(child: ToolDock(controller: c, libraryOpen: showLibrary, onLibrary: _toggleLibrary)),
+              child: Center(child: ToolDock(
+                  controller: c,
+                  libraryOpen: showLibrary,
+                  onLibrary: _toggleLibrary,
+                  onInsertImage: _insertImage,
+                )),
             ),
             Positioned(left: 12, top: 72, child: StylePanel(controller: c)),
             if (showLibrary)
@@ -218,6 +297,17 @@ class _EditorScreenState extends State<EditorScreen> with WidgetsBindingObserver
                     onClose: _toggleLibrary,
                     onManage: _managePlugins,
                   ),
+                ),
+              ),
+            if (_layers)
+              Positioned(
+                // Next to the component library when both are open.
+                right: showLibrary ? 12 + 248 + 20 + 8 : 12,
+                top: 72,
+                bottom: 72,
+                child: Align(
+                  alignment: Alignment.topRight,
+                  child: LayersPanel(controller: c, onClose: _toggleLayers),
                 ),
               ),
             Positioned(right: 12, bottom: 16, child: ZoomControls(controller: c)),
@@ -237,6 +327,8 @@ class _TopBar extends StatelessWidget {
     required this.onBack,
     required this.onRename,
     required this.onExport,
+    required this.layersOpen,
+    required this.onLayers,
     required this.canUndo,
     required this.canRedo,
     required this.onUndo,
@@ -251,6 +343,8 @@ class _TopBar extends StatelessWidget {
   final VoidCallback onBack;
   final VoidCallback onRename;
   final void Function(String) onExport;
+  final bool layersOpen;
+  final VoidCallback onLayers;
   final bool canUndo;
   final bool canRedo;
   final VoidCallback onUndo;
@@ -327,6 +421,7 @@ class _TopBar extends StatelessWidget {
               IconBtn(icon: Icons.undo, tooltip: 'Undo (Ctrl+Z)', onPressed: canUndo ? onUndo : null),
               IconBtn(icon: Icons.redo, tooltip: 'Redo (Ctrl+Shift+Z)', onPressed: canRedo ? onRedo : null),
               const VerticalDivider(width: 12, indent: 8, endIndent: 8),
+              IconBtn(icon: Icons.layers_outlined, tooltip: 'Layers (Ctrl+Shift+L)', active: layersOpen, onPressed: onLayers),
               PopupMenuButton<String>(
                 tooltip: 'Export',
                 onSelected: onExport,
@@ -369,7 +464,7 @@ class _EmptyHint extends StatelessWidget {
           Text('Pick a tool below and start drawing.', style: TextStyle(color: Color(Palette.inkSecondary), fontSize: 18)),
           SizedBox(height: 8),
           Text(
-            'P pen · R rectangle · T text · N sticky note · C components · Space+drag to move around · wheel to zoom',
+            'P pen · R rectangle · T text · N sticky note · C components · Ctrl+V paste an image · drop pictures here · Space+drag to move around · wheel to zoom',
             style: style,
           ),
         ],

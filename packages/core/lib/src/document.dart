@@ -1,3 +1,4 @@
+import 'assets.dart';
 import 'geometry.dart';
 import 'ids.dart';
 import 'migrations.dart';
@@ -56,6 +57,39 @@ final class Camera {
   int get hashCode => Object.hash(pan, zoom);
 }
 
+/// How a layer is shown and handled, kept beside the object (not inside it)
+/// so editing a name or toggling the eye never touches the object itself.
+final class LayerProps {
+  const LayerProps({this.name, this.visible = true, this.locked = false});
+
+  static const none = LayerProps();
+
+  /// Custom name, or null to use the default one for the object.
+  final String? name;
+
+  /// Hidden layers are neither painted nor exported, and cannot be picked.
+  final bool visible;
+
+  /// Locked layers cannot be selected on the canvas, moved or erased, so you
+  /// can draw over them without dragging them around.
+  final bool locked;
+
+  bool get isDefault => name == null && visible && !locked;
+
+  LayerProps copyWith({String? Function()? name, bool? visible, bool? locked}) => LayerProps(
+    name: name != null ? name() : this.name,
+    visible: visible ?? this.visible,
+    locked: locked ?? this.locked,
+  );
+
+  @override
+  bool operator ==(Object other) =>
+      other is LayerProps && other.name == name && other.visible == visible && other.locked == locked;
+
+  @override
+  int get hashCode => Object.hash(name, visible, locked);
+}
+
 /// A board: metadata + objects in z-order (first = bottom).
 ///
 /// Mutation happens only through the low-level operations below, which are
@@ -92,6 +126,8 @@ final class BoardDocument {
 
   final Map<String, BoardObject> _byId = {};
   final List<String> _order = [];
+  final Map<String, LayerProps> _props = {};
+  final Map<String, BoardAsset> _assets = {};
 
   /// Bumped on every content change. Cheap change detection for UI/autosave.
   int get revision => _revision;
@@ -120,22 +156,64 @@ final class BoardDocument {
   int indexOf(String id) => _order.indexOf(id);
   List<String> get order => List.unmodifiable(_order);
 
-  Bounds? get contentBounds => Bounds.union(objects.map((o) => o.bounds));
+  /// Bounds of everything that shows (hidden layers do not count).
+  Bounds? get contentBounds => Bounds.union(visibleObjects.map((o) => o.bounds));
 
-  /// Topmost object under [p], or null.
+  /// Objects that are painted and exported, bottom to top.
+  Iterable<BoardObject> get visibleObjects => objects.where((o) => isVisible(o.id));
+
+  // ---- layers ----
+
+  LayerProps propsOf(String id) => _props[id] ?? LayerProps.none;
+  bool isVisible(String id) => propsOf(id).visible;
+  bool isLocked(String id) => propsOf(id).locked;
+
+  /// Whether the canvas may pick, move or erase [id].
+  bool isEditable(String id) {
+    final p = propsOf(id);
+    return p.visible && !p.locked;
+  }
+
+  /// The layer's name: the custom one, or a default derived from its content.
+  String layerName(String id) {
+    final custom = propsOf(id).name;
+    if (custom != null && custom.trim().isNotEmpty) return custom;
+    final o = _byId[id];
+    return o == null ? '' : defaultLayerName(o);
+  }
+
+  /// Layers from the top of the stack to the bottom, as a layers panel lists them.
+  List<BoardObject> get layersTopDown => [for (var i = _order.length - 1; i >= 0; i--) _byId[_order[i]]!];
+
+  /// Topmost pickable object under [p], or null. Hidden and locked layers are
+  /// skipped, so you can click through them.
   BoardObject? hitTest(Vec2 p, double tolerance) {
     for (var i = _order.length - 1; i >= 0; i--) {
       final o = _byId[_order[i]]!;
-      if (o.hitTest(p, tolerance)) return o;
+      if (isEditable(o.id) && o.hitTest(p, tolerance)) return o;
     }
     return null;
   }
 
-  /// Objects whose bounds are fully inside [area] (marquee selection).
+  /// Pickable objects whose bounds are fully inside [area] (marquee selection).
   List<BoardObject> objectsInside(Bounds area) => [
     for (final o in objects)
-      if (area.containsBounds(o.bounds)) o,
+      if (isEditable(o.id) && area.containsBounds(o.bounds)) o,
   ];
+
+  // ---- assets (picture bytes) ----
+
+  Iterable<BoardAsset> get assets => _assets.values;
+  BoardAsset? asset(String id) => _assets[id];
+
+  /// Registers picture bytes. Not an edit by itself: the object that uses it is.
+  void addAsset(BoardAsset asset) => _assets[asset.id] = asset;
+
+  /// Assets some image of the board points at.
+  Set<String> get referencedAssetIds => {
+    for (final o in objects)
+      if (o is ImageObject) o.assetId,
+  };
 
   // ---- low-level operations (used by commands) ----
 
@@ -152,6 +230,7 @@ final class BoardDocument {
     if (o == null) throw StateError('Object $id does not exist');
     final i = _order.indexOf(id);
     _order.removeAt(i);
+    _props.remove(id);
     _touch();
     return (i, o);
   }
@@ -172,6 +251,16 @@ final class BoardDocument {
     _touch();
   }
 
+  void setProps(String id, LayerProps props) {
+    if (!_byId.containsKey(id)) throw StateError('Object $id does not exist');
+    if (props.isDefault) {
+      _props.remove(id);
+    } else {
+      _props[id] = props;
+    }
+    _touch();
+  }
+
   void rename(String newTitle) {
     title = newTitle;
     _touch();
@@ -184,7 +273,10 @@ final class BoardDocument {
 
   // ---- serialization ----
 
-  Map<String, Object?> toJson() => {
+  ///
+  /// Picture bytes stay out of the JSON (they live as files next to it) unless
+  /// [embedAssets] is set, which makes a self-contained copy for export.
+  Map<String, Object?> toJson({bool embedAssets = false}) => {
     'format': formatName,
     'schemaVersion': currentSchemaVersion,
     'boardId': id,
@@ -192,8 +284,23 @@ final class BoardDocument {
     'createdAt': createdAt.toIso8601String(),
     'updatedAt': updatedAt.toIso8601String(),
     'viewport': viewport.toJson(),
-    'objects': [for (final o in objects) o.toJson()],
+    'objects': [for (final o in objects) {...o.toJson(), ..._propsJson(o.id)}],
+    if (embedAssets)
+      'assets': {
+        for (final id in referencedAssetIds)
+          if (_assets[id] != null) id: _assets[id]!.toEmbeddedJson(),
+      },
   };
+
+  Map<String, Object?> _propsJson(String id) {
+    final p = _props[id];
+    if (p == null) return const {};
+    return {
+      if (p.name != null) 'name': p.name,
+      if (!p.visible) 'hidden': true,
+      if (p.locked) 'locked': true,
+    };
+  }
 
   /// Parses any supported schema version, migrating old files forward.
   factory BoardDocument.fromJson(Map<String, Object?> raw) {
@@ -208,6 +315,45 @@ final class BoardDocument {
       viewport: Camera.fromJson(json['viewport']),
       objects: [for (final o in objects) BoardObject.fromJson((o as Map).cast<String, Object?>())],
     );
+    for (final raw in objects) {
+      final m = (raw as Map).cast<String, Object?>();
+      final name = m['name'];
+      final props = LayerProps(
+        name: name is String && name.trim().isNotEmpty ? name : null,
+        visible: m['hidden'] != true,
+        locked: m['locked'] == true,
+      );
+      if (!props.isDefault) doc._props[m['id'] as String] = props;
+    }
+    final embedded = json['assets'];
+    if (embedded is Map) {
+      for (final e in embedded.entries) {
+        final asset = BoardAsset.fromEmbeddedJson('${e.key}', e.value);
+        if (asset != null) doc.addAsset(asset);
+      }
+    }
     return doc;
   }
+}
+
+/// Name a layer gets until the user renames it.
+String defaultLayerName(BoardObject o) {
+  String clip(String t) {
+    final line = t.trim().split('\n').first;
+    return line.length > 28 ? '${line.substring(0, 27)}…' : line;
+  }
+
+  return switch (o) {
+    ImageObject() => 'Image',
+    StrokeObject() => 'Drawing',
+    ShapeObject s => switch (s.kind) {
+      ShapeKind.rectangle => 'Rectangle',
+      ShapeKind.ellipse => 'Ellipse',
+      ShapeKind.line => 'Line',
+      ShapeKind.arrow => 'Arrow',
+    },
+    TextObject t => t.text.trim().isEmpty ? 'Text' : clip(t.text),
+    StickyNote n => n.text.trim().isEmpty ? 'Note' : clip(n.text),
+    ComponentObject c => c.label.trim().isEmpty ? (c.definition?.label ?? 'Component') : clip(c.label),
+  };
 }

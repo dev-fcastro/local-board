@@ -6,7 +6,7 @@ import 'editor_screen.dart';
 import 'home_screen.dart';
 import 'services.dart';
 
-const appVersion = '0.2.0';
+const appVersion = '0.3.0';
 
 ThemeData buildTheme() {
   const ink = Color(Palette.ink);

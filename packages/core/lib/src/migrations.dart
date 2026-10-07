@@ -1,5 +1,5 @@
 /// Schema version written by this build.
-const currentSchemaVersion = 2;
+const currentSchemaVersion = 3;
 
 typedef Migration = Map<String, Object?> Function(Map<String, Object?> json);
 
@@ -10,6 +10,9 @@ final Map<int, Migration> migrations = {
   // bump only makes older apps refuse these boards instead of failing on an
   // object type they do not know.
   1: (json) => json,
+  // 3 adds pictures (type image, bytes kept as assets next to the board) and
+  // per-layer name/hidden/locked. All optional, so nothing to rewrite.
+  2: (json) => json,
 };
 
 class UnsupportedSchemaException extends FormatException {

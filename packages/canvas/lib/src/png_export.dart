@@ -4,6 +4,7 @@ import 'dart:ui' as ui;
 import 'package:flutter/rendering.dart';
 import 'package:local_board_core/local_board_core.dart';
 
+import 'image_cache.dart';
 import 'painter.dart';
 import 'palette.dart';
 
@@ -22,6 +23,8 @@ Future<Uint8List> exportPng(
   if (longest * ratio > maxSide) ratio = maxSide / longest;
 
   final w = (content.width * ratio).ceil(), h = (content.height * ratio).ceil();
+  final images = BoardImageCache(doc);
+  await images.preload();
   final recorder = ui.PictureRecorder();
   final canvas = Canvas(recorder);
   canvas.scale(ratio);
@@ -32,13 +35,14 @@ Future<Uint8List> exportPng(
       Paint()..color = const Color(Palette.canvas),
     );
   }
-  for (final o in doc.objects) {
-    paintObject(canvas, o);
+  for (final o in doc.visibleObjects) {
+    paintObject(canvas, o, images: images);
   }
   final picture = recorder.endRecording();
   final image = await picture.toImage(w, h);
   picture.dispose();
   final data = await image.toByteData(format: ui.ImageByteFormat.png);
   image.dispose();
+  images.dispose();
   return data!.buffer.asUint8List();
 }

@@ -6,6 +6,7 @@ import 'package:flutter/gestures.dart' show kMiddleMouseButton, kPrimaryButton;
 import 'package:flutter/services.dart';
 import 'package:local_board_core/local_board_core.dart';
 
+import 'image_cache.dart';
 import 'palette.dart';
 import 'text_layout.dart';
 import 'tools.dart';
@@ -36,6 +37,26 @@ final class TextEditSession {
   final Vec2 stickySize;
 }
 
+/// A picture that came with a paste (bitmap or file from the clipboard).
+final class PastedImage {
+  const PastedImage(this.bytes, {this.name});
+
+  final Uint8List bytes;
+  final String? name;
+}
+
+/// What the system clipboard holds, as far as the board cares.
+final class ClipboardContent {
+  const ClipboardContent({this.text, this.images = const []});
+
+  final String? text;
+  final List<PastedImage> images;
+}
+
+/// Reads the system clipboard. The app plugs in one that also sees bitmaps and
+/// copied files; the default only sees text.
+typedef ClipboardReader = Future<ClipboardContent> Function();
+
 enum _Gesture { none, pan, draw, shape, move, resize, marquee, erase }
 
 enum Handle { topLeft, topRight, bottomLeft, bottomRight }
@@ -44,7 +65,9 @@ enum Handle { topLeft, topRight, bottomLeft, bottomRight }
 /// tested without pumping frames. Every document change goes through
 /// [history]; the widget only forwards input and paints state.
 class BoardController extends ChangeNotifier {
-  BoardController(this.document) : history = History(document);
+  BoardController(this.document) : history = History(document) {
+    images = BoardImageCache(document)..addListener(_emit);
+  }
 
   static const clipboardFormat = 'local-board/objects';
   static const handleSize = 10.0; // screen px
@@ -52,6 +75,12 @@ class BoardController extends ChangeNotifier {
 
   final BoardDocument document;
   final History history;
+
+  /// Decoded pictures of this board.
+  late final BoardImageCache images;
+
+  /// Reads the system clipboard on Ctrl+V (see [ClipboardReader]).
+  ClipboardReader? clipboardReader;
 
   /// Size of the widget showing the board; set by the canvas widget.
   Size viewSize = Size.zero;
@@ -117,6 +146,24 @@ class BoardController extends ChangeNotifier {
     for (final o in document.objects)
       if (selection.contains(o.id)) o,
   ];
+
+  /// Selected objects that may be edited (not locked, not hidden).
+  List<BoardObject> get _editableSelection => [
+    for (final o in selectedObjects)
+      if (document.isEditable(o.id)) o,
+  ];
+
+  /// Moving and resizing need every selected layer to be unlocked: a locked
+  /// layer picked from the layers panel stays where it is.
+  bool get canTransformSelection => selection.isNotEmpty && selection.every(document.isEditable);
+
+  @override
+  void dispose() {
+    images
+      ..removeListener(_emit)
+      ..dispose();
+    super.dispose();
+  }
 
   Bounds? get selectionBounds => Bounds.union(selectedObjects.map((o) => preview[o.id]?.bounds ?? o.bounds));
 
@@ -186,7 +233,7 @@ class BoardController extends ChangeNotifier {
       ShapeObject s => s.copyWith(strokeColor: c),
       TextObject t => t.copyWith(color: c),
       ComponentObject o => o.copyWith(color: c),
-      StickyNote() => null,
+      StickyNote() || ImageObject() => null,
     }, 'Color');
   }
 
@@ -214,7 +261,7 @@ class BoardController extends ChangeNotifier {
 
   void _restyle(BoardObject? Function(BoardObject) change, String label) {
     final before = <BoardObject>[], after = <BoardObject>[];
-    for (final o in selectedObjects) {
+    for (final o in _editableSelection) {
       final n = change(o);
       if (n != null) {
         before.add(o);
@@ -301,7 +348,7 @@ class BoardController extends ChangeNotifier {
         }
         if (selection.contains(hit.id)) {
           _gesture = _Gesture.move;
-          _originals = selectedObjects;
+          _originals = _editableSelection;
         }
       case Tool.hand:
         break;
@@ -374,7 +421,7 @@ class BoardController extends ChangeNotifier {
           ..clear()
           ..addAll({for (final o in _originals) o.id: o.translate(d)});
       case _Gesture.resize:
-        _resizeTo(w, keepAspect: shift || _originals.any((o) => o is TextObject));
+        _resizeTo(w, keepAspect: shift || _originals.any((o) => o is TextObject || o is ImageObject));
       case _Gesture.marquee:
         marquee = Bounds.fromPoints(_downWorld, w);
         selection
@@ -488,7 +535,7 @@ class BoardController extends ChangeNotifier {
   void _eraseAt(Vec2 w) {
     final tol = (hitSlop + 4) / camera.zoom;
     for (final o in document.objects) {
-      if (!erasing.contains(o.id) && o.hitTest(w, tol)) erasing.add(o.id);
+      if (document.isEditable(o.id) && !erasing.contains(o.id) && o.hitTest(w, tol)) erasing.add(o.id);
     }
   }
 
@@ -496,7 +543,7 @@ class BoardController extends ChangeNotifier {
 
   Map<Handle, Offset> handlePositions() {
     final b = selectionBounds;
-    if (b == null || _tool != Tool.select) return const {};
+    if (b == null || _tool != Tool.select || !canTransformSelection) return const {};
     final tl = toScreen(b.topLeft), br = toScreen(Vec2(b.right, b.bottom));
     const pad = 4.0;
     return {
@@ -655,7 +702,7 @@ class BoardController extends ChangeNotifier {
     _tool = Tool.select;
     selection
       ..clear()
-      ..addAll(document.order);
+      ..addAll(document.order.where(document.isEditable));
     _emit();
   }
 
@@ -664,29 +711,101 @@ class BoardController extends ChangeNotifier {
     _emit();
   }
 
+  /// Deletes the selection; locked layers are protected (delete them from
+  /// the layers panel on purpose).
   void deleteSelection() {
-    if (selection.isEmpty) return;
-    history.execute(DeleteObjects(selection.toList()));
-    selection.clear();
+    final ids = [
+      for (final id in selection)
+        if (!document.isLocked(id)) id,
+    ];
+    if (ids.isEmpty) return;
+    history.execute(DeleteObjects(ids));
+    selection.removeAll(ids);
     _emit();
   }
 
   void nudge(Vec2 d) {
-    final objs = selectedObjects;
+    final objs = _editableSelection;
     if (objs.isEmpty) return;
     history.execute(UpdateObjects.move(objs, d));
     _emit();
   }
 
   void duplicateSelection() {
-    final objs = selectedObjects;
+    final objs = _editableSelection;
     if (objs.isEmpty) return;
     _insertCopies(objs, const Vec2(24, 24), label: 'Duplicate');
   }
 
   void reorderSelection(ZMove move) {
     if (selection.isEmpty) return;
+    // Nothing to move (already on top, say): no empty undo step.
+    if (reorderedIds(document.order, selection, move).join(',') == document.order.join(',')) return;
     history.execute(ReorderObjects(selection, move));
+    _emit();
+  }
+
+  // ---- layers ----
+
+  /// Picks a layer from the layers panel (works for locked ones too, so they
+  /// can be unlocked or deleted).
+  void selectLayer(String id, {bool additive = false}) {
+    if (!document.contains(id) || editing != null) return;
+    _tool = Tool.select;
+    if (additive) {
+      selection.contains(id) ? selection.remove(id) : selection.add(id);
+    } else {
+      selection
+        ..clear()
+        ..add(id);
+    }
+    _emit();
+  }
+
+  void setLayerVisible(String id, bool visible) {
+    if (!document.contains(id) || document.isVisible(id) == visible) return;
+    history.execute(
+      SetLayerProps({id: document.propsOf(id).copyWith(visible: visible)}, label: visible ? 'Show layer' : 'Hide layer'),
+    );
+    if (!visible) selection.remove(id);
+    _emit();
+  }
+
+  void setLayerLocked(String id, bool locked) {
+    if (!document.contains(id) || document.isLocked(id) == locked) return;
+    history.execute(
+      SetLayerProps({id: document.propsOf(id).copyWith(locked: locked)}, label: locked ? 'Lock layer' : 'Unlock layer'),
+    );
+    _emit();
+  }
+
+  /// Renames a layer; an empty name goes back to the default one.
+  void renameLayer(String id, String name) {
+    if (!document.contains(id)) return;
+    final t = name.trim();
+    final next = t.isEmpty ? null : t;
+    if (document.propsOf(id).name == next) return;
+    history.execute(SetLayerProps({id: document.propsOf(id).copyWith(name: () => next)}, label: 'Rename layer'));
+    _emit();
+  }
+
+  void deleteLayer(String id) {
+    if (!document.contains(id)) return;
+    history.execute(DeleteObjects([id], label: 'Delete layer'));
+    selection.remove(id);
+    _emit();
+  }
+
+  /// Moves a layer to stacking position [index] (0 = bottom), the way a drag
+  /// in the layers panel does.
+  void moveLayer(String id, int index) {
+    final order = [...document.order];
+    final from = order.indexOf(id);
+    if (from < 0) return;
+    order.removeAt(from);
+    order.insert(index.clamp(0, order.length), id);
+    if (order.join(',') == document.order.join(',')) return;
+    history.execute(SetOrder(order));
     _emit();
   }
 
@@ -728,11 +847,89 @@ class BoardController extends ChangeNotifier {
     deleteSelection();
   }
 
+  /// Ctrl+V: board objects, then pictures (bitmap or copied files), then text.
   Future<void> paste() async {
-    final data = await Clipboard.getData(Clipboard.kTextPlain);
-    final text = data?.text;
-    if (text == null || text.isEmpty) return;
-    pasteText(text);
+    ClipboardContent content;
+    try {
+      content = await (clipboardReader ?? _readTextClipboard)();
+    } on Object {
+      content = await _readTextClipboard();
+    }
+    await pasteContent(content);
+  }
+
+  Future<ClipboardContent> _readTextClipboard() async =>
+      ClipboardContent(text: (await Clipboard.getData(Clipboard.kTextPlain))?.text);
+
+  /// Puts [content] on the board. Our own copied objects win over everything;
+  /// a picture wins over text (a browser puts both when you copy an image).
+  Future<void> pasteContent(ClipboardContent content) async {
+    final text = content.text;
+    if (text != null && text.contains(clipboardFormat) && text.trimLeft().startsWith('{')) {
+      pasteText(text);
+      return;
+    }
+    var inserted = 0;
+    for (final image in content.images) {
+      final shift = Vec2(24, 24) * inserted.toDouble();
+      if (await insertImage(image.bytes, name: image.name, shift: shift)) inserted++;
+    }
+    if (inserted > 0) return;
+    if (text != null && text.isNotEmpty) pasteText(text);
+  }
+
+  /// Adds a picture to the board, centered on the visible area (or on
+  /// [center], in world coordinates, e.g. where a file was dropped), shrunk if
+  /// it is huge, and selects it. Returns false when [bytes] are not a picture.
+  Future<bool> insertImage(Uint8List bytes, {String? name, Vec2? center, Vec2 shift = Vec2.zero}) async {
+    var mime = BoardAsset.sniffImageMime(bytes);
+    if (mime == null) return false;
+    if (mime == 'image/bmp') {
+      final png = await encodePng(bytes);
+      if (png != null) {
+        bytes = png;
+        mime = 'image/png';
+      }
+    }
+    final natural = await decodeImageSize(bytes);
+    if (natural == null) return false;
+    final asset = BoardAsset.fromBytes(bytes, mime: mime);
+    document.addAsset(asset);
+
+    final visible = Vec2(viewSize.width / camera.zoom, viewSize.height / camera.zoom);
+    final size = fitImageSize(natural, visible);
+    final middle = (center ?? toWorld(Offset(viewSize.width / 2, viewSize.height / 2))) + shift;
+    final image = ImageObject(
+      id: newId(),
+      assetId: asset.id,
+      mime: mime,
+      position: middle - size * 0.5,
+      size: size,
+      naturalSize: natural,
+    );
+    final label = _layerNameFromFile(name);
+    history.execute(
+      CompositeCommand([
+        AddObjects([image], label: 'Add image'),
+        if (label != null) SetLayerProps({image.id: LayerProps(name: label)}, label: 'Name image'),
+      ], label: 'Add image'),
+    );
+    _tool = Tool.select;
+    selection
+      ..clear()
+      ..add(image.id);
+    _emit();
+    return true;
+  }
+
+  /// "holiday.photo.png" -> "holiday.photo"; null for nameless pastes.
+  static String? _layerNameFromFile(String? file) {
+    if (file == null) return null;
+    final base = file.split(RegExp(r'[\\/]')).last;
+    final dot = base.lastIndexOf('.');
+    final stem = (dot > 0 ? base.substring(0, dot) : base).trim();
+    if (stem.isEmpty) return null;
+    return stem.length > 40 ? stem.substring(0, 40) : stem;
   }
 
   /// Pastes Local Board objects at the cursor, or plain text as a text object.
@@ -791,7 +988,9 @@ class BoardController extends ChangeNotifier {
     if (event is KeyUpEvent) return false;
 
     final kb = HardwareKeyboard.instance;
-    final ctrl = kb.isControlPressed || kb.isMetaPressed;
+    // AltGr reports as Ctrl+Alt on Windows: that is a typed character
+    // (like ] on many layouts), not a shortcut.
+    final ctrl = (kb.isControlPressed || kb.isMetaPressed) && !kb.isAltPressed;
     final shift = kb.isShiftPressed;
 
     if (ctrl) {
@@ -827,6 +1026,16 @@ class BoardController extends ChangeNotifier {
         default:
           return false;
       }
+      return true;
+    }
+
+    // ] and [ step the selection one layer up or down.
+    if (key == LogicalKeyboardKey.bracketRight || event.character == ']') {
+      reorderSelection(ZMove.forward);
+      return true;
+    }
+    if (key == LogicalKeyboardKey.bracketLeft || event.character == '[') {
+      reorderSelection(ZMove.backward);
       return true;
     }
 

@@ -42,7 +42,9 @@ class BoardNotFoundException implements Exception {
 }
 
 /// Stores each board as `<boardId>.whiteboard` (plain versioned JSON) in
-/// `<root>/boards`.
+/// `<root>/boards`. Picture bytes are not in the JSON: they are content-
+/// addressed files in `<root>/assets` (`<hash>.png`, ...), shared by every
+/// board that uses the same picture.
 ///
 /// Crash safety (plan §12):
 /// * saves write `<file>.tmp`, fsync, then atomically rename over the board;
@@ -58,7 +60,13 @@ final class BoardStore {
 
   Directory get boardsDir => Directory(p.join(root.path, 'boards'));
   Directory get trashDir => Directory(p.join(root.path, 'trash'));
+  Directory get assetsDir => Directory(p.join(root.path, 'assets'));
   File get _stateFile => File(p.join(root.path, 'state.json'));
+
+  /// Assets known to be on disk, so autosave does not stat them every time.
+  final Set<String> _assetsOnDisk = {};
+
+  File assetFile(String fileName) => File(p.join(assetsDir.path, fileName));
 
   File fileFor(String id) => File(p.join(boardsDir.path, '$id$extension'));
 
@@ -80,7 +88,7 @@ final class BoardStore {
     final out = <BoardSummary>[];
     for (final id in ids) {
       try {
-        final loaded = await open(id);
+        final loaded = await _openRaw(id); // no picture bytes: only the listing is needed
         final d = loaded.document;
         out.add(
           BoardSummary(id: d.id, title: d.title, updatedAt: d.updatedAt, objectCount: d.length, file: fileFor(id)),
@@ -102,6 +110,12 @@ final class BoardStore {
   }
 
   Future<LoadedBoard> open(String id) async {
+    final loaded = await _openRaw(id);
+    await loadAssets(loaded.document);
+    return loaded;
+  }
+
+  Future<LoadedBoard> _openRaw(String id) async {
     final main = fileFor(id);
     final candidates = <(String, File)>[
       ('temporary save', File('${main.path}.tmp')),
@@ -131,8 +145,60 @@ final class BoardStore {
     return LoadedBoard(best, recoveredFrom: (bestSource == null || bestSource.isEmpty) ? null : bestSource);
   }
 
+  // ---- assets ----
+
+  /// Reads the bytes of every picture [doc] uses and does not carry yet.
+  /// A missing file is skipped: the image shows a placeholder instead of the
+  /// whole board failing to open.
+  Future<void> loadAssets(BoardDocument doc) async {
+    for (final o in doc.objects.whereType<ImageObject>()) {
+      if (doc.asset(o.assetId) != null) continue;
+      final name = '${o.assetId}.${BoardAsset.extensionForMime(o.mime)}';
+      final file = assetFile(name);
+      try {
+        if (!await file.exists()) continue;
+        doc.addAsset(BoardAsset(id: o.assetId, mime: o.mime, bytes: await file.readAsBytes()));
+        _assetsOnDisk.add(name);
+      } on Object {
+        // Unreadable asset: leave the placeholder.
+      }
+    }
+  }
+
+  /// Stores one asset (tmp + rename, never a half file).
+  Future<void> writeAsset(String fileName, List<int> bytes) async {
+    await assetsDir.create(recursive: true);
+    final target = assetFile(fileName);
+    final tmp = File('${target.path}.tmp');
+    await tmp.writeAsBytes(bytes, flush: true);
+    await tmp.rename(target.path);
+    _assetsOnDisk.add(fileName);
+  }
+
+  Future<bool> hasAsset(String fileName) async =>
+      _assetsOnDisk.contains(fileName) || await assetFile(fileName).exists();
+
+  Future<List<int>?> readAsset(String fileName) async {
+    final f = assetFile(fileName);
+    return await f.exists() ? f.readAsBytes() : null;
+  }
+
+  /// Writes the pictures [doc] uses that are not on disk yet.
+  Future<void> _saveAssets(BoardDocument doc) async {
+    for (final id in doc.referencedAssetIds) {
+      final asset = doc.asset(id);
+      if (asset == null || _assetsOnDisk.contains(asset.fileName)) continue;
+      if (await assetFile(asset.fileName).exists()) {
+        _assetsOnDisk.add(asset.fileName);
+        continue;
+      }
+      await writeAsset(asset.fileName, asset.bytes);
+    }
+  }
+
   Future<void> save(BoardDocument doc) async {
     await init();
+    await _saveAssets(doc); // pictures first: a board never points at a missing file
     final main = fileFor(doc.id);
     final tmp = File('${main.path}.tmp');
     final bak = File('${main.path}.bak');
@@ -202,6 +268,9 @@ final class BoardStore {
       ..['title'] = '${source.title} (copy)'
       ..['createdAt'] = DateTime.now().toUtc().toIso8601String();
     final copy = BoardDocument.fromJson(json);
+    for (final a in source.assets) {
+      copy.addAsset(a);
+    }
     await save(copy);
     return copy;
   }
@@ -210,7 +279,8 @@ final class BoardStore {
 
   Future<void> exportTo(BoardDocument doc, String path) async {
     final target = path.endsWith(extension) ? path : '$path$extension';
-    await File(target).writeAsString(const JsonEncoder.withIndent(' ').convert(doc.toJson()), flush: true);
+    // A copy to share must carry its pictures inside the file.
+    await File(target).writeAsString(const JsonEncoder.withIndent(' ').convert(doc.toJson(embedAssets: true)), flush: true);
   }
 
   /// Imports a `.whiteboard` file. If a board with the same id already
@@ -219,8 +289,13 @@ final class BoardStore {
     var doc = await _read(File(path));
     if (await fileFor(doc.id).exists()) {
       final json = doc.toJson()..['boardId'] = newId();
-      doc = BoardDocument.fromJson(json);
+      final fresh = BoardDocument.fromJson(json);
+      for (final a in doc.assets) {
+        fresh.addAsset(a);
+      }
+      doc = fresh;
     }
+    await loadAssets(doc); // pictures that were not embedded may already be here
     await save(doc);
     return doc;
   }

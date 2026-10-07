@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 
+import 'assets.dart';
 import 'geometry.dart';
 import 'plugins/plugin.dart';
 import 'plugins/registry.dart';
@@ -53,6 +54,7 @@ sealed class BoardObject {
       TextObject.typeName => TextObject.fromJson(json),
       StickyNote.typeName => StickyNote.fromJson(json),
       ComponentObject.typeName => ComponentObject.fromJson(json),
+      ImageObject.typeName => ImageObject.fromJson(json),
       _ => throw FormatException('Unknown object type: $type'),
     };
   }
@@ -512,6 +514,102 @@ final class ComponentObject extends BoardObject {
       size: Vec2.fromJson(json['size']),
       label: json['label'] is String ? json['label'] as String : '',
       color: colorFromJson(json['color']),
+    );
+  }
+}
+
+/// A picture. The bytes are a [BoardAsset] of the document, referenced by
+/// [assetId]; the object only stores where it sits and how big it is. Like
+/// every other object it is axis-aligned (nothing on a board rotates).
+final class ImageObject extends BoardObject {
+  const ImageObject({
+    required this.id,
+    required this.assetId,
+    required this.mime,
+    required this.position,
+    required this.size,
+    required this.naturalSize,
+  });
+
+  static const typeName = 'image';
+  static const minSide = 16.0;
+
+  @override
+  final String id;
+  final String assetId;
+  final String mime;
+  final Vec2 position;
+  final Vec2 size;
+
+  /// Pixel size of the original, so the aspect ratio is known without decoding.
+  final Vec2 naturalSize;
+
+  double get aspect => size.y == 0 ? 1 : size.x / size.y;
+
+  @override
+  String get type => typeName;
+
+  @override
+  Bounds get bounds => Bounds(position.x, position.y, position.x + size.x, position.y + size.y);
+
+  @override
+  ImageObject translate(Vec2 d) => copyWith(position: position + d);
+
+  /// Images always keep their proportions: the box is scaled uniformly and
+  /// anchored at its top-left corner.
+  @override
+  ImageObject resize(Bounds from, Bounds to) {
+    final box = Bounds.fromPoints(mapPoint(position, from, to), mapPoint(position + size, from, to));
+    final s = math.max(box.width / (size.x == 0 ? 1 : size.x), box.height / (size.y == 0 ? 1 : size.y));
+    var w = size.x * s, h = size.y * s;
+    final shortest = math.min(w, h);
+    if (shortest < minSide && shortest > 0) {
+      final k = minSide / shortest;
+      w *= k;
+      h *= k;
+    }
+    return copyWith(position: box.topLeft, size: Vec2(w, h));
+  }
+
+  @override
+  bool hitTest(Vec2 p, double tolerance) => bounds.inflate(tolerance).contains(p);
+
+  ImageObject copyWith({String? id, Vec2? position, Vec2? size}) => ImageObject(
+    id: id ?? this.id,
+    assetId: assetId,
+    mime: mime,
+    position: position ?? this.position,
+    size: size ?? this.size,
+    naturalSize: naturalSize,
+  );
+
+  @override
+  ImageObject withId(String id) => copyWith(id: id);
+
+  @override
+  Map<String, Object?> toJson() => {
+    'type': type,
+    'id': id,
+    'assetId': assetId,
+    'mime': mime,
+    'position': position.toJson(),
+    'size': size.toJson(),
+    'natural': naturalSize.toJson(),
+  };
+
+  factory ImageObject.fromJson(Map<String, Object?> json) {
+    final assetId = json['assetId'];
+    if (assetId is! String || !BoardAsset.idPattern.hasMatch(assetId)) {
+      throw FormatException('Image without a valid asset: ${json['id']}');
+    }
+    final size = Vec2.fromJson(json['size']);
+    return ImageObject(
+      id: _id(json),
+      assetId: assetId,
+      mime: json['mime'] is String ? json['mime'] as String : 'image/png',
+      position: Vec2.fromJson(json['position']),
+      size: size,
+      naturalSize: json['natural'] == null ? size : Vec2.fromJson(json['natural']),
     );
   }
 }

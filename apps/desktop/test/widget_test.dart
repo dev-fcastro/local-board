@@ -98,6 +98,65 @@ void main() {
     await settleIo(tester);
   });
 
+  testWidgets('layers panel: hide, lock, delete and the changes reach the disk', (tester) async {
+    final store = BoardStore(dir);
+    await pumpApp(tester, store);
+    await tester.tap(find.text('Create your first board'));
+    await settleIo(tester, until: find.text('Untitled board'));
+
+    await tester.sendKeyEvent(LogicalKeyboardKey.keyR);
+    for (final start in [const Offset(400, 300), const Offset(700, 300), const Offset(400, 500)]) {
+      final g = await tester.startGesture(start, kind: PointerDeviceKind.mouse);
+      await g.moveTo(start + const Offset(60, 40));
+      await g.moveTo(start + const Offset(150, 100));
+      await g.up();
+      await tester.pump();
+    }
+
+    await tester.tap(find.byTooltip('Layers (Ctrl+Shift+L)'));
+    await tester.pump();
+    expect(find.text('LAYERS'), findsOneWidget);
+    expect(find.text('Rectangle'), findsNWidgets(3));
+
+    // Rows are listed top first: hide the first, lock the second, delete the third.
+    await tester.tap(find.byTooltip('Hide layer').first);
+    await tester.pump();
+    await tester.tap(find.byTooltip('Lock layer (draw over it without moving it)').at(1));
+    await tester.pump();
+    await tester.tap(find.byTooltip('Delete layer').last);
+    await tester.pump();
+    expect(find.text('Rectangle'), findsNWidgets(2));
+    expect(find.byTooltip('Show layer'), findsOneWidget);
+    expect(find.byTooltip('Unlock layer'), findsOneWidget);
+
+    // Rename by double click.
+    final name = find.text('Rectangle').first;
+    await tester.tap(name);
+    await tester.pump(const Duration(milliseconds: 40));
+    await tester.tap(name);
+    await tester.pump();
+    await tester.enterText(
+      find.byWidgetPredicate((w) => w is TextField && w.decoration?.hintText == 'Layer name'),
+      'Header',
+    );
+    await tester.testTextInput.receiveAction(TextInputAction.done);
+    await tester.pump();
+    expect(find.text('Header'), findsOneWidget);
+
+    await tester.tap(find.byTooltip('All boards (Ctrl+W)'));
+    await settleIo(tester, until: find.textContaining('2 items'));
+    final boards = (await tester.runAsync(store.list))!;
+    final doc = (await tester.runAsync(() => store.open(boards.single.id)))!.document;
+    expect(doc.length, 2);
+    final top = doc.order.last, below = doc.order.first;
+    expect(doc.isVisible(top), isFalse);
+    expect(doc.isLocked(below), isTrue);
+    expect(doc.layerName(top), 'Header');
+
+    await tester.pumpWidget(const SizedBox());
+    await settleIo(tester);
+  });
+
   testWidgets('place a plugin component, name it, and turn a plugin off', (tester) async {
     final store = BoardStore(dir);
     await pumpApp(tester, store);

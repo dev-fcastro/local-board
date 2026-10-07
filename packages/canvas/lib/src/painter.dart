@@ -5,6 +5,7 @@ import 'package:flutter/rendering.dart';
 import 'package:local_board_core/local_board_core.dart';
 
 import 'component_painter.dart';
+import 'image_cache.dart';
 import 'palette.dart';
 import 'text_layout.dart';
 
@@ -41,7 +42,7 @@ TextPainter _textPainter(BoardObject o) => _textCache[o] ??= switch (o) {
 };
 
 /// Draws one object in world coordinates. Shared by the canvas and PNG export.
-void paintObject(Canvas canvas, BoardObject o, {double opacity = 1, bool showLabel = true}) {
+void paintObject(Canvas canvas, BoardObject o, {double opacity = 1, bool showLabel = true, BoardImageCache? images}) {
   final layer = opacity < 1;
   if (layer) canvas.saveLayer(null, Paint()..color = Color.fromRGBO(0, 0, 0, opacity));
   switch (o) {
@@ -73,8 +74,34 @@ void paintObject(Canvas canvas, BoardObject o, {double opacity = 1, bool showLab
       }
     case ComponentObject c:
       paintComponent(canvas, c, showLabel: showLabel);
+    case ImageObject i:
+      _paintImage(canvas, i, images?.lookup(i.assetId));
   }
   if (layer) canvas.restore();
+}
+
+void _paintImage(Canvas canvas, ImageObject i, ui.Image? image) {
+  final dst = Rect.fromLTWH(i.position.x, i.position.y, i.size.x, i.size.y);
+  if (image != null) {
+    canvas.drawImageRect(
+      image,
+      Rect.fromLTWH(0, 0, image.width.toDouble(), image.height.toDouble()),
+      dst,
+      Paint()
+        ..filterQuality = FilterQuality.medium
+        ..isAntiAlias = true,
+    );
+    return;
+  }
+  // Still decoding, or the bytes are gone: keep the spot visible.
+  canvas.drawRect(dst, Paint()..color = const Color(0xFFECE9FF));
+  canvas.drawRect(
+    dst,
+    Paint()
+      ..style = PaintingStyle.stroke
+      ..color = const Color(0xFFC7C2F5)
+      ..strokeWidth = 1,
+  );
 }
 
 void _paintShape(Canvas canvas, ShapeObject s) {
@@ -124,6 +151,7 @@ final class BoardScene {
     this.selectionBounds,
     this.marquee,
     this.showHandles = true,
+    this.images,
   });
 
   final BoardDocument document;
@@ -139,6 +167,7 @@ final class BoardScene {
   final Bounds? selectionBounds;
   final Bounds? marquee;
   final bool showHandles;
+  final BoardImageCache? images;
 }
 
 class BoardPainter extends CustomPainter {
@@ -165,11 +194,17 @@ class BoardPainter extends CustomPainter {
     canvas.translate(v.pan.x, v.pan.y);
     canvas.scale(v.zoom);
 
-    for (final original in scene.document.objects) {
+    for (final original in scene.document.visibleObjects) {
       if (original.id == scene.hidden) continue;
       final o = scene.preview[original.id] ?? original;
       if (!visible.overlaps(o.bounds)) continue; // culling keeps big boards fast
-      paintObject(canvas, o, opacity: scene.erasing.contains(o.id) ? 0.25 : 1, showLabel: o.id != scene.blankLabel);
+      paintObject(
+        canvas,
+        o,
+        opacity: scene.erasing.contains(o.id) ? 0.25 : 1,
+        showLabel: o.id != scene.blankLabel,
+        images: scene.images,
+      );
     }
     final draft = scene.draft;
     if (draft != null) paintObject(canvas, draft, opacity: draft is ComponentObject ? 0.55 : 1);
@@ -182,7 +217,7 @@ class BoardPainter extends CustomPainter {
         ..strokeWidth = hairline;
       for (final id in scene.selection) {
         final o = scene.preview[id] ?? scene.document[id];
-        if (o == null) continue;
+        if (o == null || !scene.document.isVisible(id)) continue;
         canvas.drawRect(_rect(o.bounds.inflate(2 / v.zoom)), sel);
       }
     }

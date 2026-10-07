@@ -52,12 +52,17 @@ final class _Entry {
 
 const manifestName = 'manifest.json';
 
+/// Pictures are stored once per content, next to the boards, under this prefix.
+const assetPrefix = 'asset-';
+
 /// Two-way sync between this computer's boards and a storage.
 ///
 /// The storage holds one `.whiteboard` file per board plus a small manifest
 /// (id → last change), so a sync only transfers boards that changed. When
 /// both sides changed, the newest edit wins and the other version stays in
-/// the board's local backup. Boards moved to the trash on one computer are
+/// the board's local backup. Pictures travel as separate content-addressed
+/// files (`asset-<hash>.png`), uploaded once however many boards use them.
+/// Boards moved to the trash on one computer are
 /// moved to the trash on the others, never destroyed.
 ///
 /// [busy] are boards open in an editor right now: they are uploaded but
@@ -65,10 +70,13 @@ const manifestName = 'manifest.json';
 Future<SyncReport> syncBoards(BoardStore store, RemoteStore remote, {Set<String> busy = const {}}) async {
   final report = SyncReport();
   final manifest = <String, _Entry>{};
+  final remoteAssets = <String>{};
   final raw = await remote.read(manifestName);
   if (raw != null) {
     try {
       final json = jsonDecode(utf8.decode(raw));
+      final known = json is Map ? json['assets'] : null;
+      if (known is List) remoteAssets.addAll(known.whereType<String>());
       final boards = json is Map ? json['boards'] : null;
       if (boards is Map) {
         for (final e in boards.entries) {
@@ -83,6 +91,16 @@ Future<SyncReport> syncBoards(BoardStore store, RemoteStore remote, {Set<String>
   var dirty = raw == null;
 
   Future<void> upload(BoardDocument doc) async {
+    // Pictures first, so no computer sees a board whose images are not there yet.
+    for (final image in doc.objects.whereType<ImageObject>()) {
+      final file = '${image.assetId}.${BoardAsset.extensionForMime(image.mime)}';
+      if (remoteAssets.contains(file)) continue;
+      final bytes = doc.asset(image.assetId)?.bytes ?? await store.readAsset(file);
+      if (bytes == null) continue; // nothing to send; the placeholder shows
+      await remote.write('$assetPrefix$file', bytes);
+      remoteAssets.add(file);
+      dirty = true;
+    }
     await remote.write('${doc.id}${BoardStore.extension}', await store.encode(doc));
     manifest[doc.id] = _Entry(doc.updatedAt, doc.title);
     report.uploaded++;
@@ -95,7 +113,17 @@ Future<SyncReport> syncBoards(BoardStore store, RemoteStore remote, {Set<String>
     try {
       final json = jsonDecode(utf8.decode(bytes));
       if (json is! Map<String, Object?>) return;
-      await store.save(BoardDocument.fromJson(json));
+      final doc = BoardDocument.fromJson(json);
+      for (final image in doc.objects.whereType<ImageObject>()) {
+        final file = '${image.assetId}.${BoardAsset.extensionForMime(image.mime)}';
+        if (await store.hasAsset(file)) continue;
+        final picture = await remote.read('$assetPrefix$file');
+        if (picture != null) {
+          await store.writeAsset(file, picture);
+          remoteAssets.add(file);
+        }
+      }
+      await store.save(doc);
       report.downloaded++;
     } on UnsupportedSchemaException {
       report.needsUpdate++;
@@ -142,6 +170,7 @@ Future<SyncReport> syncBoards(BoardStore store, RemoteStore remote, {Set<String>
     final json = {
       'format': 'local-board-sync',
       'version': 1,
+      'assets': remoteAssets.toList()..sort(),
       'boards': {for (final e in manifest.entries) e.key: e.value.toJson()},
     };
     await remote.write(manifestName, utf8.encode(const JsonEncoder.withIndent(' ').convert(json)));

@@ -2,6 +2,7 @@
 /// commands and undo/redo history. No Flutter, no I/O.
 library;
 
+export 'src/assets.dart';
 export 'src/commands.dart';
 export 'src/document.dart';
 export 'src/geometry.dart';

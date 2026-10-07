@@ -118,12 +118,15 @@ const _toolIcons = <Tool, IconData>{
 
 /// Bottom tool dock, like the site mockup: "Select Pen Shape Text".
 class ToolDock extends StatelessWidget {
-  const ToolDock({super.key, required this.controller, this.libraryOpen = false, this.onLibrary});
+  const ToolDock({super.key, required this.controller, this.libraryOpen = false, this.onLibrary, this.onInsertImage});
 
   final BoardController controller;
 
   /// Opens and closes the component library.
   final VoidCallback? onLibrary;
+
+  /// Picks picture files to put on the board.
+  final VoidCallback? onInsertImage;
   final bool libraryOpen;
 
   @override
@@ -147,6 +150,14 @@ class ToolDock extends StatelessWidget {
                 active: controller.tool == t,
                 onPressed: () => controller.setTool(t),
               ),
+          ],
+          if (onInsertImage != null) ...[
+            const SizedBox(height: 24, child: VerticalDivider(width: 12)),
+            IconBtn(
+              icon: Icons.add_photo_alternate_outlined,
+              tooltip: 'Insert image (Ctrl+Shift+I). You can also paste with Ctrl+V or drop files.',
+              onPressed: onInsertImage,
+            ),
           ],
           if (onLibrary != null) ...[
             const SizedBox(height: 24, child: VerticalDivider(width: 12)),
@@ -176,7 +187,7 @@ class StylePanel extends StatelessWidget {
     final sel = c.selectedObjects;
     final tool = c.tool;
 
-    final showInk = tool.usesStroke || tool == Tool.text || sel.any((o) => o is! StickyNote);
+    final showInk = tool.usesStroke || tool == Tool.text || sel.any((o) => o is! StickyNote && o is! ImageObject);
     final showWidth = tool.usesStroke || sel.any((o) => o is StrokeObject || o is ShapeObject);
     final showText = tool == Tool.text || sel.any((o) => o is TextObject);
     final showSticky = tool == Tool.sticky || sel.any((o) => o is StickyNote);
