@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://localboard.fcastro.site/sitemap.xml

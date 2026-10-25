@@ -11,11 +11,13 @@ import CookieConsent from "../components/CookieConsent.astro";
 interface Props {
   title: string;
   description?: string;
+  schema?: Record<string, unknown>;
 }
 
 const {
   title,
   description = "Local Board is an offline-first whiteboard. Your boards live on your computer. The cloud is optional, never required.",
+  schema,
 } = Astro.props;
 ---
 
@@ -31,10 +33,12 @@ const {
     <link rel="author" href="https://www.fcastro.site/" />
     <meta property="og:title" content={title} />
     <meta property="og:description" content={description} />
+    <meta property="og:url" content={new URL(Astro.url.pathname, Astro.site)} />
     <meta property="og:image" content={new URL("/icon-512.png", Astro.site)} />
     <meta property="og:type" content="website" />
     <meta name="description" content={description} />
     <meta name="theme-color" content="#4f46e5" />
+    {schema && <script type="application/ld+json" set:html={JSON.stringify(schema)} />}
     <title>{title}</title>
     <script is:inline>
       (function () {

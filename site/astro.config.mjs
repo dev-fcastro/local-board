@@ -5,7 +5,7 @@ import vercel from "@astrojs/vercel";
 // Pages stay static; only /api/* routes (prerender = false) run as
 // serverless functions on Vercel.
 export default defineConfig({
-  site: "https://localboards.vercel.app",
+  site: "https://localboard.fcastro.site",
   output: "static",
   adapter: vercel(),
 });

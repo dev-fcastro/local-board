@@ -5,7 +5,7 @@
 
 export const REPO_URL = "https://github.com/dev-fcastro/local-board";
 export const RELEASES_URL = `${REPO_URL}/releases`;
-export const SITE_URL = "https://localboards.vercel.app";
+export const SITE_URL = "https://localboard.fcastro.site";
 
 const LATEST_API = "https://api.github.com/repos/dev-fcastro/local-board/releases/latest";
 

@@ -5,9 +5,25 @@ import Solutions from "../components/Solutions.astro";
 import YourBoards from "../components/YourBoards.astro";
 import Download from "../components/Download.astro";
 import EarlyAccess from "../components/EarlyAccess.astro";
+
+const schema = {
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  name: "Local Board",
+  url: "https://localboard.fcastro.site/",
+  description: "An offline-first whiteboard. Your boards live on your computer. The cloud is optional, never required.",
+  applicationCategory: "ProductivityApplication",
+  operatingSystem: "Linux, Windows",
+  downloadUrl: "https://localboard.fcastro.site/download/",
+  author: {
+    "@type": "Person",
+    name: "Francisco Castro",
+    url: "https://www.fcastro.site/",
+  },
+};
 ---
 
-<Base title="Local Board | an offline-first whiteboard">
+<Base title="Local Board | an offline-first whiteboard" schema={schema}>
   <Hero />
   <Solutions />
   <YourBoards />
