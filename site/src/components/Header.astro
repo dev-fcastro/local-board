@@ -1,6 +1,4 @@
 ---
-import logoFull from "../assets/logo-full.svg?raw";
-
 const links = [
   { href: "/#use-cases", label: "Use cases" },
   { href: "/#your-boards", label: "Your boards" },
@@ -10,7 +8,9 @@ const links = [
 ---
 
 <header class="header -w">
-  <a class="brand" href="/" aria-label="Local Board home" set:html={logoFull} />
+  <a class="brand" href="/">
+    <img src="/logo-full-white.svg" alt="Local Board" width="360" height="64" />
+  </a>
 </header>
 
 <button class="menu-toggle" type="button" aria-expanded="false" aria-controls="site-menu">
@@ -93,14 +93,10 @@ const links = [
     }
   }
 
-  .brand :global(svg) {
+  .brand img {
     display: block;
     width: 100%;
     height: auto;
-  }
-
-  .brand :global(text) {
-    font-family: var(--font-sans);
   }
 
   .menu-toggle {
