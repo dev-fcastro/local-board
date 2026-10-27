@@ -1,0 +1,53 @@
+---
+import Base from "../layouts/Base.astro";
+import "../styles/growth.css";
+
+interface Props {
+  title: string;
+  description: string;
+  eyebrow: string;
+  heading: string;
+  intro: string;
+  crumbs: { name: string; path: string }[];
+  schema?: Record<string, unknown>;
+}
+
+const { title, description, eyebrow, heading, intro, crumbs, schema } = Astro.props;
+const site = Astro.site ?? new URL("https://localboard.fcastro.site");
+const breadcrumb = {
+  "@type": "BreadcrumbList",
+  itemListElement: [{ name: "Home", path: "/" }, ...crumbs].map((item, index) => ({
+    "@type": "ListItem",
+    position: index + 1,
+    name: item.name,
+    item: new URL(item.path, site).toString(),
+  })),
+};
+const pageSchema = {
+  "@context": "https://schema.org",
+  "@graph": [
+    { "@type": "WebPage", name: title, description, url: new URL(Astro.url.pathname, site).toString() },
+    breadcrumb,
+    ...(schema ? [schema] : []),
+  ],
+};
+---
+
+<Base title={title} description={description} schema={pageSchema}>
+  <section class="growth-hero">
+    <div class="growth-wrap">
+      <nav class="growth-crumbs" aria-label="Breadcrumb">
+        <a href="/">Home</a>
+        {crumbs.map((item) => <><span aria-hidden="true">/</span><a href={item.path}>{item.name}</a></>)}
+      </nav>
+      <p class="growth-eyebrow">{eyebrow}</p>
+      <h1>{heading}</h1>
+      <p class="growth-intro">{intro}</p>
+      <div class="growth-actions">
+        <a class="growth-button growth-button-light" href="/download/">Download Local Board <span aria-hidden="true">↗</span></a>
+        <a class="growth-text-link" href="/contact/">Ask a question <span aria-hidden="true">↗</span></a>
+      </div>
+    </div>
+  </section>
+  <slot />
+</Base>

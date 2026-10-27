@@ -8,18 +8,28 @@ import EarlyAccess from "../components/EarlyAccess.astro";
 
 const schema = {
   "@context": "https://schema.org",
-  "@type": "SoftwareApplication",
-  name: "Local Board",
-  url: "https://localboard.fcastro.site/",
-  description: "An offline-first whiteboard. Your boards live on your computer. The cloud is optional, never required.",
-  applicationCategory: "ProductivityApplication",
-  operatingSystem: "Linux, Windows",
-  downloadUrl: "https://localboard.fcastro.site/download/",
-  author: {
-    "@type": "Person",
-    name: "Francisco Castro",
-    url: "https://www.fcastro.site/",
-  },
+  "@graph": [
+    {
+      "@type": "WebSite",
+      name: "Local Board",
+      url: "https://localboard.fcastro.site/",
+      description: "An offline-first whiteboard. Your boards live on your computer. The cloud is optional, never required.",
+    },
+    {
+      "@type": "SoftwareApplication",
+      name: "Local Board",
+      url: "https://localboard.fcastro.site/",
+      description: "An offline-first whiteboard. Your boards live on your computer. The cloud is optional, never required.",
+      applicationCategory: "ProductivityApplication",
+      operatingSystem: "Linux, Windows",
+      downloadUrl: "https://localboard.fcastro.site/download/",
+      author: {
+        "@type": "Person",
+        name: "Francisco Castro",
+        url: "https://www.fcastro.site/",
+      },
+    },
+  ],
 };
 ---
 

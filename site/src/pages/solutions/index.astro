@@ -1,0 +1,43 @@
+---
+import GrowthShell from "../../components/GrowthShell.astro";
+import { solutions } from "../../data/solutions";
+---
+
+<GrowthShell
+  title="Offline whiteboard solutions for teams | Local Board"
+  description="Explore Local Board for offline workshops, software architecture and network diagrams. Draw locally, save on your computer and export when ready."
+  eyebrow="Solutions / 01"
+  heading="A local canvas for work that cannot wait."
+  intro="Brainstorm, plan a system or map a network without depending on an account or a connection. Choose the kind of work you want to do."
+  crumbs={[{ name: "Solutions", path: "/solutions/" }]}
+>
+  <div class="growth-main growth-wrap">
+    <section class="growth-section">
+      <p class="growth-kicker">Choose a starting point</p>
+      <h2>What are you trying to make visible?</h2>
+      <div class="growth-grid">
+        {solutions.map((item) => (
+          <article class="growth-card">
+            <a href={`/solutions/${item.slug}/`}>
+              <p class="growth-kicker">{item.label}</p>
+              <h3>{item.heading}</h3>
+              <p>{item.description}</p>
+            </a>
+          </article>
+        ))}
+      </div>
+    </section>
+    <section class="growth-section">
+      <p class="growth-kicker">The common thread</p>
+      <h2>Your ideas stay available.</h2>
+      <p>Local Board saves boards on your computer. You can work without signing in, return to an editable board later, and export an image when you want to share the result.</p>
+    </section>
+  </div>
+  <section class="growth-cta">
+    <div class="growth-wrap">
+      <h2>Start with a board of your own.</h2>
+      <p>Download for Windows or Linux. The macOS version is not available yet.</p>
+      <div class="growth-actions"><a class="growth-button growth-button-light" href="/download/">Download Local Board ↗</a></div>
+    </div>
+  </section>
+</GrowthShell>

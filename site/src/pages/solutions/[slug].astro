@@ -1,0 +1,59 @@
+---
+import GrowthShell from "../../components/GrowthShell.astro";
+import { solutions, type Solution } from "../../data/solutions";
+
+export function getStaticPaths() {
+  return solutions.map((solution) => ({ params: { slug: solution.slug }, props: { solution } }));
+}
+
+const { solution } = Astro.props as { solution: Solution };
+const related = solutions.filter((item) => item.slug !== solution.slug);
+---
+
+<GrowthShell
+  title={solution.title}
+  description={solution.description}
+  eyebrow={`Solutions / ${solution.label}`}
+  heading={solution.heading}
+  intro={solution.intro}
+  crumbs={[{ name: "Solutions", path: "/solutions/" }, { name: solution.label, path: `/solutions/${solution.slug}/` }]}
+>
+  <div class="growth-main growth-wrap">
+    <section class="growth-section">
+      <p class="growth-kicker">The problem</p>
+      <h2>Keep the thinking in one place.</h2>
+      <p>{solution.problem}</p>
+    </section>
+    <section class="growth-section">
+      <p class="growth-kicker">How Local Board helps</p>
+      <h2>From rough idea to a file you can use.</h2>
+      <div class="growth-grid">
+        {solution.benefits.map((benefit) => (
+          <article class="growth-card"><h3>{benefit.title}</h3><p>{benefit.text}</p></article>
+        ))}
+      </div>
+    </section>
+    <section class="growth-section">
+      <p class="growth-kicker">A simple workflow</p>
+      <h2>Three steps to a useful draft.</h2>
+      <ol class="growth-steps">{solution.workflow.map((step) => <li>{step}</li>)}</ol>
+    </section>
+    <section class="growth-section">
+      <p class="growth-kicker">Explore more</p>
+      <h2>Other ways to use your board.</h2>
+      <div class="growth-grid">
+        {related.map((item) => (
+          <article class="growth-card"><a href={`/solutions/${item.slug}/`}><h3>{item.label}</h3><p>{item.description}</p></a></article>
+        ))}
+        <article class="growth-card"><a href="/resources/offline-whiteboard-guide/"><h3>Offline workshop guide</h3><p>Plan a session that keeps moving when the connection does not.</p></a></article>
+      </div>
+    </section>
+  </div>
+  <section class="growth-cta">
+    <div class="growth-wrap">
+      <h2>Try the workflow on your own computer.</h2>
+      <p>Windows and Linux downloads are available. No account is required.</p>
+      <div class="growth-actions"><a class="growth-button growth-button-light" href="/download/">Download Local Board ↗</a><a class="growth-text-link" href="/contact/">Contact the creator ↗</a></div>
+    </div>
+  </section>
+</GrowthShell>

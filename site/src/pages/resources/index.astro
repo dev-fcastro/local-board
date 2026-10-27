@@ -1,0 +1,24 @@
+---
+import GrowthShell from "../../components/GrowthShell.astro";
+---
+
+<GrowthShell
+  title="Whiteboard guides and resources | Local Board"
+  description="Practical guides for planning workshops and making useful diagrams with an offline whiteboard."
+  eyebrow="Resources / 01"
+  heading="Better thinking starts with a clear board."
+  intro="Short, practical guides for working visually, keeping your files and sharing what you make."
+  crumbs={[{ name: "Resources", path: "/resources/" }]}
+>
+  <div class="growth-main growth-wrap">
+    <section class="growth-section">
+      <p class="growth-kicker">Guides</p>
+      <h2>Start here.</h2>
+      <div class="growth-grid">
+        <article class="growth-card"><a href="/resources/offline-whiteboard-guide/"><p class="growth-kicker">Workshop guide</p><h3>How to run a whiteboard workshop offline</h3><p>Prepare, facilitate and share a useful board without relying on Wi-Fi.</p></a></article>
+        <article class="growth-card"><a href="/solutions/software-architecture/"><p class="growth-kicker">Use case</p><h3>Software architecture diagrams</h3><p>Turn a conversation about components into a visual draft.</p></a></article>
+        <article class="growth-card"><a href="/solutions/network-diagrams/"><p class="growth-kicker">Use case</p><h3>Network diagrams</h3><p>Sketch a topology when you need a local, editable canvas.</p></a></article>
+      </div>
+    </section>
+  </div>
+</GrowthShell>

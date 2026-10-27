@@ -2,5 +2,12 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url><loc>https://localboard.fcastro.site/</loc></url>
   <url><loc>https://localboard.fcastro.site/download/</loc></url>
+  <url><loc>https://localboard.fcastro.site/solutions/</loc></url>
+  <url><loc>https://localboard.fcastro.site/solutions/offline-workshops/</loc></url>
+  <url><loc>https://localboard.fcastro.site/solutions/software-architecture/</loc></url>
+  <url><loc>https://localboard.fcastro.site/solutions/network-diagrams/</loc></url>
+  <url><loc>https://localboard.fcastro.site/resources/</loc></url>
+  <url><loc>https://localboard.fcastro.site/resources/offline-whiteboard-guide/</loc></url>
+  <url><loc>https://localboard.fcastro.site/contact/</loc></url>
   <url><loc>https://localboard.fcastro.site/terms/</loc></url>
 </urlset>

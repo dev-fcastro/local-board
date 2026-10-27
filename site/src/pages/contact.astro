@@ -1,0 +1,24 @@
+---
+import GrowthShell from "../components/GrowthShell.astro";
+---
+
+<GrowthShell
+  title="Contact the Local Board creator"
+  description="Questions or feedback about Local Board? Contact Francisco Castro by email or open an issue in the project's GitHub repository."
+  eyebrow="Contact / 01"
+  heading="Have a question about Local Board?"
+  intro="Send feedback, report a problem or ask about using the app. Your message goes directly to the person building it."
+  crumbs={[{ name: "Contact", path: "/contact/" }]}
+>
+  <div class="growth-main growth-wrap">
+    <section class="growth-section">
+      <p class="growth-kicker">Choose a channel</p>
+      <h2>Get in touch.</h2>
+      <div class="growth-grid">
+        <article class="growth-card"><a href="mailto:fcastrodev1@proton.me?subject=Local%20Board"><h3>Email the creator</h3><p>For questions, suggestions or a private conversation about Local Board.</p></a></article>
+        <article class="growth-card"><a href="https://github.com/dev-fcastro/local-board/issues" target="_blank" rel="noopener"><h3>Open a GitHub issue</h3><p>For a reproducible bug or a feature request the community can follow.</p></a></article>
+        <article class="growth-card"><a href="/download/"><h3>Try the app first</h3><p>Download the Windows or Linux release and explore the board on your computer.</p></a></article>
+      </div>
+    </section>
+  </div>
+</GrowthShell>

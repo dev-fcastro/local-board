@@ -1,0 +1,41 @@
+---
+import GrowthShell from "../../components/GrowthShell.astro";
+
+const title = "How to run an offline whiteboard workshop | Local Board";
+const description = "A practical guide to preparing a whiteboard workshop, capturing ideas without Wi-Fi, and sharing the outcome afterward.";
+const url = "https://localboard.fcastro.site/resources/offline-whiteboard-guide/";
+const schema = {
+  "@type": "Article",
+  headline: "How to run an offline whiteboard workshop",
+  description,
+  mainEntityOfPage: url,
+  author: { "@type": "Person", name: "Francisco Castro" },
+  publisher: { "@type": "Organization", name: "Local Board", url: "https://localboard.fcastro.site/" },
+};
+---
+
+<GrowthShell
+  title={title}
+  description={description}
+  eyebrow="Guide / Workshops"
+  heading="How to run a whiteboard workshop offline."
+  intro="A good session needs a clear question, room to explore and a record of what the group decided. None of that should depend on Wi-Fi."
+  crumbs={[{ name: "Resources", path: "/resources/" }, { name: "Offline workshop guide", path: "/resources/offline-whiteboard-guide/" }]}
+  schema={schema}
+>
+  <div class="growth-main growth-wrap">
+    <article class="growth-article">
+      <p>Start by writing down the decision the group needs to make. A board full of ideas is useful only if everyone knows what the session is meant to resolve.</p>
+      <h2>1. Prepare the board before people arrive</h2>
+      <p>Create a board on your computer. Add a title, the question you want to answer and a few empty areas for ideas, concerns and next steps. Open the file once before the session to confirm it is ready. If the room has no connection, your materials are still available locally.</p>
+      <h2>2. Capture first, organize second</h2>
+      <p>Let participants offer ideas without immediately judging or rearranging each one. Use short labels and sticky notes. After the first pass, group related items, draw arrows where relationships matter and mark questions that still need an owner.</p>
+      <h2>3. End with decisions and next steps</h2>
+      <p>Reserve the final minutes to identify what was decided, what remains open and who will follow up. Put those notes on the board itself so they do not depend on someone's memory of the meeting.</p>
+      <h2>4. Keep an editable copy</h2>
+      <p>Save the original board for the next session. Export a PNG or SVG when you need a visual copy for a message or document. The export is useful for sharing; the editable board is useful for continuing the work.</p>
+      <p>For a concrete workflow, see <a href="/solutions/offline-workshops/">Local Board for offline workshops</a>. If you are ready to try it, <a href="/download/">download the desktop app</a> for Windows or Linux.</p>
+    </article>
+  </div>
+  <section class="growth-cta"><div class="growth-wrap"><h2>Make the next session easier to finish.</h2><div class="growth-actions"><a class="growth-button growth-button-light" href="/download/">Download Local Board ↗</a></div></div></section>
+</GrowthShell>
